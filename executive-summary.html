@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Executive Summary — Resolution Hub (MockupAI)</title>
+  <style>
+    :root {
+      --purple: #5b5fc7;
+      --purple-light: #f0f0ff;
+      --teal: #1f6f6f;
+      --teal-light: #e7f3f1;
+      --green: #1f7a4d;
+      --blue: #2f6fb0;
+      --amber: #9a6b00;
+      --gray: #8a8a9c;
+      --bg: #f7f6fb;
+      --card: #ffffff;
+      --text: #1f1f2e;
+      --muted: #5c5c70;
+      --faint: #8a8a9c;
+      --line: #e6e4ee;
+      --radius: 10px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text);
+      line-height: 1.6; padding: 0;
+    }
+    .hero {
+      background: linear-gradient(135deg, #444693 0%, var(--teal) 100%);
+      color: white; padding: 56px 40px; text-align: center;
+    }
+    .hero h1 { font-size: 2.2rem; margin-bottom: 12px; font-weight: 700; }
+    .hero .subtitle { font-size: 1.1rem; opacity: .9; max-width: 720px; margin: 0 auto; }
+    .hero .badge {
+      display: inline-block; margin-top: 18px;
+      background: rgba(255,255,255,.15); padding: 6px 16px;
+      border-radius: 20px; font-size: .8rem; letter-spacing: .4px;
+    }
+    .container { max-width: 880px; margin: 0 auto; padding: 40px 24px; }
+    .section { margin-bottom: 36px; }
+    .section h2 {
+      font-size: 1.3rem; color: var(--purple); margin-bottom: 14px;
+      padding-bottom: 6px; border-bottom: 2px solid var(--purple-light);
+    }
+    .section p { margin-bottom: 10px; font-size: .95rem; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-top: 14px; }
+    .card {
+      background: var(--card); border-radius: var(--radius); padding: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.05); border-left: 4px solid var(--purple);
+      transition: transform .2s, box-shadow .2s;
+    }
+    .card:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,.08); }
+    .card h3 { font-size: .9rem; margin-bottom: 6px; color: var(--teal); }
+    .card p { font-size: .85rem; color: var(--muted); margin: 0; }
+    .card.teal { border-left-color: var(--teal); }
+    .card.green { border-left-color: var(--green); }
+    .card.amber { border-left-color: var(--amber); }
+
+    .flow {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+      margin-top: 14px; padding: 18px; background: var(--card);
+      border-radius: var(--radius); box-shadow: 0 2px 8px rgba(0,0,0,.05);
+    }
+    .flow-step {
+      background: var(--purple-light); padding: 10px 16px; border-radius: 6px;
+      font-size: .82rem; font-weight: 600; color: var(--purple); text-align: center; min-width: 100px;
+    }
+    .flow-arrow { font-size: 1.1rem; color: var(--faint); }
+
+    .gov-table { width: 100%; border-collapse: collapse; margin-top: 14px; font-size: .85rem; }
+    .gov-table th, .gov-table td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--line); }
+    .gov-table th { background: var(--purple-light); font-size: .75rem; text-transform: uppercase; letter-spacing: .4px; color: var(--purple); }
+    .gov-table tr:hover td { background: #fafafa; }
+    .rank { display: inline-block; width: 22px; height: 22px; border-radius: 50%; background: var(--purple); color: white; text-align: center; line-height: 22px; font-size: .7rem; font-weight: 700; }
+
+    .wf-flow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 14px 0; }
+    .wf-step { background: var(--card); border: 1px solid var(--line); padding: 6px 14px; border-radius: 6px; font-size: .8rem; font-weight: 600; }
+    .wf-arrow { color: var(--faint); }
+    .wf-note { font-size: .8rem; color: var(--amber); font-weight: 600; }
+
+    details { margin-bottom: 10px; }
+    details summary {
+      cursor: pointer; font-weight: 600; color: var(--purple);
+      padding: 10px 14px; background: var(--card); border-radius: var(--radius);
+      box-shadow: 0 2px 6px rgba(0,0,0,.04); list-style: none;
+    }
+    details summary::before { content: "▸ "; }
+    details[open] summary::before { content: "▾ "; }
+    details .detail-body { padding: 14px; background: #fafafa; border-radius: 0 0 var(--radius) var(--radius); margin-top: -4px; font-size: .85rem; }
+
+    .tabs { display: flex; gap: 0; margin-bottom: 18px; background: var(--card); border-radius: var(--radius); overflow: hidden; box-shadow: 0 2px 6px rgba(0,0,0,.04); }
+    .tab-btn {
+      flex: 1; padding: 12px; border: none; background: transparent;
+      font-size: .82rem; font-weight: 600; color: var(--muted); cursor: pointer;
+      border-bottom: 3px solid transparent; transition: all .2s;
+    }
+    .tab-btn.active { color: var(--purple); border-bottom-color: var(--purple); background: var(--purple-light); }
+    .tab-btn:hover { background: #f0f0f0; }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    .exec-callout {
+      background: linear-gradient(135deg, var(--purple-light) 0%, var(--teal-light) 100%);
+      border-radius: var(--radius); padding: 24px; margin-top: 30px; text-align: center;
+    }
+    .exec-callout .exec-msg { font-size: 1rem; font-weight: 500; line-height: 1.6; margin-bottom: 16px; }
+    .exec-callout .exec-next { font-size: .9rem; color: var(--teal); font-weight: 600; }
+
+    .footer {
+      text-align: center; padding: 24px; color: var(--faint);
+      font-size: .75rem; border-top: 1px solid var(--line); margin-top: 30px;
+    }
+    @media (max-width: 600px) {
+      .hero { padding: 36px 20px; }
+      .hero h1 { font-size: 1.6rem; }
+      .flow { flex-direction: column; }
+      .flow-arrow { transform: rotate(90deg); }
+    }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>Resolution Hub</h1>
+  <p class="subtitle">MockupAI brings verified team intelligence into the flow of conversation, helping global teams resolve recurring issues faster while preserving governance, multilingual clarity, and institutional knowledge.</p>
+  <span class="badge">Local Concept Prototype · Synthetic Data Only · Powered by MockupAI</span>
+</div>
+
+<div class="container">
+
+  <!-- Vision -->
+  <div class="section">
+    <h2>Vision</h2>
+    <p>Resolution Hub demonstrates how AI can <strong>preserve and surface team knowledge</strong> inside the collaboration environment the team already uses, with minimal behavior change. A governed AI advisor appears quietly within conversations — surfacing approved knowledge, historical precedent, and validated practices exactly when they're needed.</p>
+    <p>The goal: reduce resolution time from days to minutes while maintaining full governance, auditability, and human oversight of every recommendation made.</p>
+  </div>
+
+  <!-- Purpose -->
+  <div class="section">
+    <h2>Purpose</h2>
+    <div class="cards">
+      <div class="card">
+        <h3>Preserve Institutional Knowledge</h3>
+        <p>Capture team insights and validated resolutions so they're available to every colleague, every time — regardless of region, language, or timezone.</p>
+      </div>
+      <div class="card teal">
+        <h3>Enforce Governance</h3>
+        <p>Every recommendation carries a visible authority level — from approved policy, through validated playbook, to historical precedent. No color-only indicators; always text labels.</p>
+      </div>
+      <div class="card green">
+        <h3>Multilingual Clarity</h3>
+        <p>Full interface in English, French, Spanish, and Japanese. English remains the source of record. Translation confidence is displayed as illustrative, never as a safety guarantee.</p>
+      </div>
+      <div class="card amber">
+        <h3>Human Control</h3>
+        <p>MockupAI never acts autonomously. Human review is required before any change, and contributors cannot self-approve best practices.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- How it works -->
+  <div class="section">
+    <h2>How It Works</h2>
+    <div class="flow">
+      <div class="flow-step">Team member asks a question in channel</div>
+      <span class="flow-arrow">&rarr;</span>
+      <div class="flow-step">MockupAI surfaces relevant knowledge &amp; cases</div>
+      <span class="flow-arrow">&rarr;</span>
+      <div class="flow-step">Governed recommendation with evidence</div>
+      <span class="flow-arrow">&rarr;</span>
+      <div class="flow-step">Human reviews, decides, acts</div>
+    </div>
+    <p style="margin-top: 14px; font-size: .9rem;">The intelligence panel shows recommendations alongside authority source, confidence score, escalation triggers, and supporting citations — giving team leads full visibility into <em>why</em> each step is suggested.</p>
+  </div>
+
+  <!-- Deep dive tabs -->
+  <div class="section">
+    <h2>Deep Dive</h2>
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('governance')">Governance Model</button>
+      <button class="tab-btn" onclick="switchTab('scenario')">Demo Scenario</button>
+      <button class="tab-btn" onclick="switchTab('capabilities')">AI Capabilities</button>
+    </div>
+
+    <div class="tab-panel active" id="panel-governance">
+      <table class="gov-table">
+        <thead><tr><th>Rank</th><th>Authority Level</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><span class="rank">1</span></td><td><strong>Approved Policy or Procedure</strong></td><td>Configuration standards formally approved. Highest authority.</td></tr>
+          <tr><td><span class="rank">2</span></td><td><strong>Validated Team Playbook</strong></td><td>Team-level guides peer-reviewed and validated through practice.</td></tr>
+          <tr><td><span class="rank">3</span></td><td><strong>Historical CRM Precedent</strong></td><td>Past resolved cases used as evidence. Informational only; does not replace approved guidance.</td></tr>
+          <tr><td><span class="rank">4</span></td><td><strong>Team Conversation</strong></td><td>Unvalidated suggestions from discussion. Lowest authority, flagged accordingly.</td></tr>
+        </tbody>
+      </table>
+      <h3 style="margin-top:20px; font-size:.9rem; color:#1f1f2e;">Best Practice Approval Workflow</h3>
+      <div class="wf-flow">
+        <span class="wf-step">Team insight</span><span class="wf-arrow">→</span>
+        <span class="wf-step">Proposed best practice</span><span class="wf-arrow">→</span>
+        <span class="wf-step">Pending SME review</span><span class="wf-arrow">→</span>
+        <span class="wf-step">Approved playbook entry</span>
+      </div>
+      <p class="wf-note">A contributor cannot self-approve a best practice. SME review is always required.</p>
+    </div>
+
+    <div class="tab-panel" id="panel-scenario">
+      <p style="margin-bottom:12px;">The prototype demonstrates a realistic <strong>international travel reimbursement configuration issue</strong>:</p>
+      <details>
+        <summary>Scenario: Multi-day travel producing partial-day results</summary>
+        <div class="detail-body">
+          <p>A consultant reports that a multi-day travel scenario is producing partial-day results when full-day results were expected. Team members respond with troubleshooting guidance: review travel-period classification, configuration hierarchy, rule precedence, interval definitions, supporting adjustment logic, and policy conditions.</p>
+          <p style="margin-top:8px;">MockupAI surfaces a governed recommendation backed by 14 comparable historical cases (12 resolved through validation of configuration precedence), an approved troubleshooting guide (KB-DEMO-204), and a validated team playbook (PLAY-DEMO-015).</p>
+        </div>
+      </details>
+      <details>
+        <summary>What MockupAI shows</summary>
+        <div class="detail-body">
+          <p><strong>Recommended Action:</strong> 6 ordered steps from confirming travel-period classification through escalation to SME.</p>
+          <p><strong>Similar Cases:</strong> 14 comparable cases with common pattern analysis, regional breakdown (EMEA, Americas, APAC), and illustrative resolution rate.</p>
+          <p><strong>Knowledge:</strong> Approved guide, validated playbook, and one proposed best practice (pending SME review).</p>
+          <p><strong>Team Context:</strong> Thread summary, suggested experts, and team roles involved.</p>
+        </div>
+      </details>
+      <details>
+        <summary>Synthetic citations used</summary>
+        <div class="detail-body">
+          <p>KB-DEMO-204, CRM-DEMO-101 through CRM-DEMO-114, PLAY-DEMO-015, PLAY-PROPOSED-001. All fictional.</p>
+        </div>
+      </details>
+    </div>
+
+    <div class="tab-panel" id="panel-capabilities">
+      <div class="cards">
+        <div class="card">
+          <h3>Summarize &amp; Identify</h3>
+          <p>Summarize the thread, identify key investigation areas, and surface related historical CRM cases automatically.</p>
+        </div>
+        <div class="card teal">
+          <h3>Knowledge &amp; Experts</h3>
+          <p>Identify approved knowledge, validated practices, and suggest subject matter experts to involve.</p>
+        </div>
+        <div class="card green">
+          <h3>Draft &amp; Convert</h3>
+          <p>Draft a response for human review. Convert the final resolution into a proposed knowledge entry (requires SME approval).</p>
+        </div>
+        <div class="card amber">
+          <h3>Multilingual Reasoning</h3>
+          <p>Generate reasoning in the user's preferred language while preserving English as the source of record. CRM field names kept in English to avoid ambiguity.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Key differentiators -->
+  <div class="section">
+    <h2>Key Differentiators</h2>
+    <div class="cards">
+      <div class="card">
+        <h3>Contextual, Not Intrusive</h3>
+        <p>MockupAI appears as a quiet professional companion — helpful, grounded, easy to dismiss, never disruptive. It surfaces knowledge only when relevant discussion is detected.</p>
+      </div>
+      <div class="card teal">
+        <h3>Deterministic &amp; Fixture-Driven</h3>
+        <p>All interactions in the prototype are deterministic. No live AI calls, no external network requests, no authentication. Everything runs from synthetic fixture data.</p>
+      </div>
+      <div class="card green">
+        <h3>Governance First</h3>
+        <p>Visible text labels for Approved, Validated, Historical Evidence, and Unvalidated. Color is supplementary, never the sole indicator. Self-approval is structurally impossible.</p>
+      </div>
+      <div class="card amber">
+        <h3>Zero Infrastructure</h3>
+        <p>Single Node.js process, no database, no build step. Deploy anywhere in seconds. When Sloan (AI pipeline) is available, reasoning is generated live; otherwise falls back to prepared text.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Executive callout -->
+  <div class="exec-callout">
+    <p class="exec-msg">MockupAI brings verified team intelligence into the flow of conversation, helping global teams resolve recurring issues faster while preserving governance, multilingual clarity, and institutional knowledge.</p>
+    <p class="exec-next">Next step: authorize a scoped, read-only discovery using selected approved knowledge and anonymized historical CRM cases.</p>
+  </div>
+
+</div>
+
+<div class="footer">
+  <p>Resolution Hub · Executive Summary · Local Concept Prototype</p>
+  <p style="margin-top:4px;">This document is a self-contained interactive summary. No server or internet connection required. All data is synthetic.</p>
+</div>
+
+<script>
+  function switchTab(name) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('panel-' + name).classList.add('active');
+    event.target.classList.add('active');
+  }
+</script>
+</body>
+</html>

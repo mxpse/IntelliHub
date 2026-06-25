@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Resolution Hub — Powered by MockupAI</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div class="app" id="app">
+    <!-- Top bar -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <div class="app-brand">
+          <span class="app-glyph">RH</span>
+          <span class="app-name" data-i18n="app.title">Resolution Hub</span>
+        </div>
+      </div>
+      <div class="topbar-center">
+        <div class="search">
+          <svg class="ic" viewBox="0 0 24 24"><path d="M10 4a6 6 0 104.47 10.03l4.25 4.24 1.41-1.41-4.24-4.25A6 6 0 0010 4zm0 2a4 4 0 110 8 4 4 0 010-8z"/></svg>
+          <input type="text" id="searchInput" data-i18n-ph="search.placeholder" placeholder="Rechercher" />
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div class="lang-select">
+          <svg class="ic" viewBox="0 0 24 24"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm6.93 6h-2.95a15.6 15.6 0 00-1.38-3.56A8.03 8.03 0 0118.92 8zM12 4c.83 1.2 1.48 2.54 1.91 4h-3.82c.43-1.46 1.08-2.8 1.91-4zM4.26 14a7.96 7.96 0 010-4h3.38a16.6 16.6 0 000 4H4.26zm.82 2h2.95c.34 1.27.8 2.46 1.38 3.56A8.03 8.03 0 015.08 16zm2.95-8H5.08a8.03 8.03 0 014.33-3.56A15.6 15.6 0 008.03 8zM12 20c-.83-1.2-1.48-2.54-1.91-4h3.82A13.4 13.4 0 0112 20zm2.34-6H9.66a14.7 14.7 0 010-4h4.68a14.7 14.7 0 010 4zm.25 5.56c.58-1.1 1.04-2.29 1.38-3.56h2.95a8.03 8.03 0 01-4.33 3.56zM16.36 14a16.6 16.6 0 000-4h3.38a7.96 7.96 0 010 4h-3.38z"/></svg>
+          <select id="langSelect" aria-label="Language"></select>
+        </div>
+        <a href="/executive-summary.html" download="Resolution-Hub-Executive-Summary.html" class="summary-link" id="summaryLink" data-i18n="summary.download" title="Download Executive Summary">Télécharger le résumé</a>
+        <span class="badge-mockup" id="poweredBadge" data-i18n="app.badge">Prototype concept local · Données synthétiques uniquement · Propulsé par MockupAI</span>
+      </div>
+    </header>
+
+    <!-- Body: rail | sidebar | conversation | intelligence pane -->
+    <div class="body">
+      <!-- Left navigation rail -->
+      <nav class="rail" id="rail" aria-label="Primary"></nav>
+
+      <!-- Teams + channel tree -->
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar-head" data-i18n="teams.header">Équipes</div>
+        <div class="team-tree" id="teamTree"></div>
+      </aside>
+
+      <!-- Center conversation -->
+      <main class="channel" id="channel">
+        <div class="channel-head">
+          <div class="channel-title">
+            <span class="channel-hash">#</span>
+            <h1 id="channelName">CRM Resolution — Global Operations</h1>
+          </div>
+          <div class="channel-tabs">
+            <button class="ch-tab active" data-i18n="channel.posts">Publications</button>
+            <button class="ch-tab" data-i18n="channel.files">Fichiers</button>
+            <button class="ch-tab" data-i18n="channel.about">Resolution Hub</button>
+            <button class="pane-toggle" id="paneToggleTop" title="">⟨⟩</button>
+          </div>
+        </div>
+
+        <div class="messages" id="messages"></div>
+
+        <div class="composer">
+          <button class="demo-btn" id="demoBtn" data-i18n="compose.demoButton">Publier la question de démo</button>
+          <div class="composer-input">
+            <input type="text" id="composeInput" data-i18n-ph="compose.placeholder" placeholder="Écrivez un message au canal" />
+            <button class="send-btn" id="sendBtn" data-i18n="compose.send">Envoyer</button>
+          </div>
+        </div>
+      </main>
+
+      <!-- Right intelligence pane -->
+      <aside class="pane" id="pane">
+        <div class="pane-head">
+          <span class="pane-title" data-i18n="pane.title">Intelligence MockupAI</span>
+          <button class="pane-collapse" id="paneCollapse" data-i18n-title="pane.collapse" title="Réduire">×</button>
+        </div>
+        <div class="pane-tabs" id="paneTabs"></div>
+        <div class="pane-body" id="paneBody"></div>
+        <div class="future-note" id="futureNote"></div>
+      </aside>
+
+      <!-- Collapsed pane handle -->
+      <button class="pane-reopen" id="paneReopen" data-i18n-title="pane.expand" title="Ouvrir" hidden>⟨ AI</button>
+    </div>
+  </div>
+
+  <div class="toast-wrap" id="toastWrap"></div>
+  <div class="modal-backdrop" id="modalBackdrop">
+    <div class="modal" id="modal"></div>
+  </div>
+
+  <script>
+    window.addEventListener('error', function(e) {
+      var m = document.getElementById('messages');
+      if (m) m.innerHTML =
+        '<div style="padding:20px;color:red;font-family:monospace;white-space:pre-wrap">' +
+        'JS Error: ' + (e.message || 'unknown') + '\nFile: ' + (e.filename || '') + ':' + (e.lineno || '') +
+        '</div>';
+    });
+  </script>
+  <script src="js/data.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
