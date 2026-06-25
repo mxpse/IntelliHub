@@ -1,4 +1,4 @@
-/* Resolution Hub — application logic (local concept prototype) */
+/* IntelliHub — application logic (local concept prototype) */
 (function () {
   const D = window.HUB_DATA;
   const { I18N, LANGUAGES } = window.HUB_I18N;

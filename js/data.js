@@ -1,5 +1,5 @@
 /*
- * Resolution Hub — synthetic data module
+ * IntelliHub — synthetic data module
  * ---------------------------------------------------
  * EVERYTHING in this file is fabricated sample data for a local concept prototype.
  * No real clients, internal system names, proprietary logic, or real screenshots.
@@ -79,7 +79,7 @@ const PEOPLE = {
   rajesh: { name: "Rajesh Kapoor", role: { en: "Configuration Team Lead", fr: "Chef d'équipe configuration", es: "Líder del equipo de configuración", ja: "構成チームリード" }, region: "India", initials: "RK", color: "#c4571f" },
   yuki: { name: "Yuki Tanaka", role: { en: "Systems Analyst", fr: "Analyste systèmes", es: "Analista de sistemas", ja: "システムアナリスト" }, region: "Japan", initials: "YT", color: "#8a4fbe" },
   jason: { name: "Jason Torres", role: { en: "Configuration Specialist", fr: "Spécialiste configuration", es: "Especialista en configuración", ja: "構成スペシャリスト" }, region: "US", initials: "JT", color: "#3572a5" },
-  mockupai: { name: "MockupAI Resolution Companion", role: { en: "Governed advisor", fr: "Conseiller encadré", es: "Asesor gobernado", ja: "ガバナンスアドバイザー" }, region: "—", initials: "AI", color: "#1f6f6f", bot: true },
+  mockupai: { name: "Amazon Kiro Resolution Companion", role: { en: "Governed advisor", fr: "Conseiller encadré", es: "Asesor gobernado", ja: "ガバナンスアドバイザー" }, region: "—", initials: "AI", color: "#1f6f6f", bot: true },
 };
 
 /* ---- Channel conversation (synthetic travel reimbursement scenario) ---- */
@@ -150,7 +150,7 @@ const DEMO_QUESTION = {
   },
 };
 
-/* ---- MockupAI recommendations (governed) ---- */
+/* ---- Amazon Kiro recommendations (governed) ---- */
 const RECOMMENDATIONS = {
   "rec-travel": {
     id: "rec-travel",

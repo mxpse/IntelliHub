@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /*
- * Resolution Hub — local prototype server
+ * IntelliHub — local prototype server
  * ---------------------------------------
  * Two jobs only:
  *   1. Serve the static prototype (index.html, css, js).
@@ -60,7 +60,7 @@ function buildPrompt(p) {
   const lang = p.languageName || (p.language === "fr" ? "French" : "English");
   const evidence = (p.evidence || []).map((e, i) => `  ${i + 1}. ${e}`).join("\n");
   return [
-    `You are MockupAI, a governed resolution advisor embedded in a team collaboration channel.`,
+    `You are Amazon Kiro, a governed resolution advisor embedded in a team collaboration channel.`,
     `A teammate asked: "${p.question}".`,
     ``,
     `The approved recommended next step (already governed, do not change it) is:`,
@@ -168,7 +168,7 @@ const server = http.createServer((req, res) => {
 server.listen(CFG.port, "0.0.0.0", () => {
   const ifaces = require("os").networkInterfaces();
   const lanIP = Object.values(ifaces).flat().find(i => i.family === "IPv4" && !i.internal)?.address || "unknown";
-  console.log(`\n  Resolution Hub prototype running:`);
+  console.log(`\n  IntelliHub prototype running:`);
   console.log(`    Local:   http://localhost:${CFG.port}`);
   console.log(`    Network: http://${lanIP}:${CFG.port}`);
   console.log(`  Sloan reasoning: ${CFG.token ? "ENABLED" : "DISABLED (set SLOAN_TOKEN in .env)"} -> ${CFG.baseUrl}${CFG.shortcutPath}`);
