@@ -16,8 +16,8 @@
         <span class="brand-name">IntelliHub</span>
       </div>
       <nav class="header-nav">
-        <a href="#chat" class="nav-link active" data-section="chat">Team Chat</a>
-        <a href="#ask" class="nav-link" data-section="ask">&#x1F916; Ask AI SME</a>
+        <a href="#ask" class="nav-link active" data-section="ask">&#x1F916; Ask AI SME</a>
+        <a href="#chat" class="nav-link" data-section="chat">Team Chat</a>
         <a href="#convert" class="nav-link" data-section="convert">&#x2699;&#xFE0F; File Converter</a>
         <a href="#knowledge" class="nav-link" data-section="knowledge">&#x1F4DA; Knowledge Vault</a>
         <a href="#statutory" class="nav-link" data-section="statutory">Statutory Wiki</a>
@@ -32,30 +32,8 @@
     <div class="body-layout">
       <!-- Main content -->
       <main class="main">
-        <!-- Team Chat Section (default view) -->
-        <section class="section active" id="section-chat">
-          <div class="section-inner">
-            <div class="hero-compact">
-              <h1>Team Chat</h1>
-              <p class="hero-sub">Real-time team discussions on configuration issues, resolutions, and best practices. Confirmed outcomes are archived to the Knowledge Vault.</p>
-            </div>
-            <div class="team-chat-composer">
-              <div class="composer-wrap">
-                <textarea id="teamChatInput" class="composer-input" placeholder="Ask a question or share an update with the team..." rows="2"></textarea>
-                <button class="composer-btn" id="teamChatSend">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2Z"/></svg>
-                  Post
-                </button>
-              </div>
-            </div>
-            <div class="team-chat-feed" id="teamChatFeed">
-              <!-- Populated by JS — mirrors the right panel but in full width -->
-            </div>
-          </div>
-        </section>
-
-        <!-- AI Q&A Section -->
-        <section class="section section-ask" id="section-ask">
+        <!-- AI Q&A Section (default landing) -->
+        <section class="section section-ask active" id="section-ask">
           <div class="section-inner">
             <div class="hero-compact">
               <h1>What can I help you find?</h1>
@@ -78,6 +56,14 @@
               </div>
             </div>
 
+            <!-- Informative panel: shows after question is submitted -->
+            <div class="info-panel" id="infoPanel" hidden>
+              <div class="info-panel-content" id="infoPanelContent">
+                <!-- Populated by JS with AI answer + sources -->
+              </div>
+            </div>
+
+            <!-- Welcome state (before any question) -->
             <div class="conversation" id="conversation">
               <div class="welcome-state" id="welcomeState">
                 <div class="welcome-icon">
@@ -91,6 +77,28 @@
                   <span class="source-badge badge-wiki">Internal Wiki</span>
                 </div>
               </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Team Chat Section -->
+        <section class="section" id="section-chat">
+          <div class="section-inner">
+            <div class="hero-compact">
+              <h1>Team Chat</h1>
+              <p class="hero-sub">Real-time team discussions on configuration issues, resolutions, and best practices. Confirmed outcomes are archived to the Knowledge Vault.</p>
+            </div>
+            <div class="team-chat-composer">
+              <div class="composer-wrap">
+                <textarea id="teamChatInput" class="composer-input" placeholder="Ask a question or share an update with the team..." rows="2"></textarea>
+                <button class="composer-btn" id="teamChatSend">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2Z"/></svg>
+                  Post
+                </button>
+              </div>
+            </div>
+            <div class="team-chat-feed" id="teamChatFeed">
+              <!-- Populated by JS — mirrors the right panel but in full width -->
             </div>
           </div>
         </section>
@@ -253,22 +261,34 @@
         </section>
       </main>
 
-      <!-- Right side: Team Conversations -->
+      <!-- Right side: Live Collaborative Chat -->
       <aside class="team-panel" id="teamPanel">
         <div class="panel-header">
           <div class="panel-title-row">
             <span class="panel-icon">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
             </span>
-            <span class="panel-title">Team Conversations</span>
+            <span class="panel-title">Live Discussion</span>
           </div>
           <span class="panel-channel"># CRM Resolution — Global Operations</span>
+          <div class="panel-presence">
+            <span class="presence-dot"></span>
+            <span class="presence-text">4 team members online</span>
+          </div>
         </div>
         <div class="panel-messages" id="panelMessages">
           <!-- Populated by JS from conversation data -->
         </div>
-        <div class="panel-footer">
-          <div class="panel-note">These conversations demonstrate how IntelliHub surfaces knowledge in the flow of team discussion.</div>
+        <div class="panel-composer">
+          <div class="panel-composer-hints">
+            <span class="mention-hint">Type <strong>@statutory</strong> to query statutory wiki in conversation</span>
+          </div>
+          <div class="panel-composer-wrap">
+            <textarea id="panelChatInput" class="panel-chat-input" placeholder="Type a message... use @statutory for wiki queries" rows="2"></textarea>
+            <button class="panel-send-btn" id="panelChatSend">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2Z"/></svg>
+            </button>
+          </div>
         </div>
       </aside>
     </div>

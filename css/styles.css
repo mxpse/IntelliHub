@@ -1281,6 +1281,176 @@ body {
   font-style: italic;
 }
 
+/* Panel composer (live chat input) */
+.panel-composer {
+  padding: 10px 14px;
+  border-top: 2px solid var(--border);
+  flex: none;
+  background: var(--surface-alt);
+}
+
+.panel-composer-hints {
+  margin-bottom: 6px;
+}
+
+.mention-hint {
+  font-size: 9px;
+  color: var(--ink-muted);
+}
+
+.mention-hint strong {
+  color: var(--accent-purple);
+  background: var(--accent-purple-bg);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+.panel-composer-wrap {
+  display: flex;
+  gap: 6px;
+  align-items: flex-end;
+}
+
+.panel-chat-input {
+  flex: 1;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-family: var(--font);
+  font-size: 11px;
+  color: var(--ink);
+  resize: none;
+  outline: none;
+  line-height: 1.4;
+  transition: border-color var(--transition);
+}
+
+.panel-chat-input:focus {
+  border-color: var(--brand);
+}
+
+.panel-send-btn {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  background: var(--brand);
+  color: white;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  flex: none;
+  transition: background var(--transition);
+}
+
+.panel-send-btn:hover {
+  background: var(--brand-hover);
+}
+
+/* Panel presence indicator */
+.panel-presence {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 4px;
+}
+
+.presence-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #34d399;
+  animation: presencePulse 2s infinite;
+}
+
+@keyframes presencePulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.presence-text {
+  font-size: 9px;
+  color: var(--ink-muted);
+}
+
+/* @mention styling in messages */
+.mention {
+  color: var(--accent-purple);
+  background: var(--accent-purple-bg);
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-weight: 600;
+  font-size: 10px;
+}
+
+/* Info panel (left side after question submitted) */
+.info-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 16px;
+}
+
+.info-panel-content .info-answer {
+  font-size: 11px;
+  line-height: 1.7;
+  color: var(--ink);
+  margin-bottom: 14px;
+}
+
+.info-panel-content .info-answer p {
+  margin-bottom: 8px;
+}
+
+.info-panel-content .info-sources {
+  padding-top: 12px;
+  border-top: 1px solid var(--border-light);
+}
+
+.info-panel-content .info-sources-label {
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--ink-muted);
+  margin-bottom: 8px;
+}
+
+.info-panel-content .info-source-item {
+  padding: 8px 10px;
+  background: var(--surface-alt);
+  border-radius: var(--radius);
+  margin-bottom: 6px;
+  border-left: 3px solid var(--brand);
+}
+
+.info-source-item .source-id {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--brand);
+  margin-bottom: 2px;
+}
+
+.info-source-item .source-title {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.info-source-item .source-excerpt {
+  font-size: 10px;
+  color: var(--ink-secondary);
+  margin-top: 2px;
+  line-height: 1.5;
+}
+
+.info-source-item.type-policy { border-left-color: var(--accent-green); }
+.info-source-item.type-playbook { border-left-color: var(--accent-blue); }
+.info-source-item.type-precedent { border-left-color: var(--accent-amber); }
+.info-source-item.type-wiki { border-left-color: var(--accent-gray); }
+
 /* Footer */
 .footer {
   padding: 14px 28px;

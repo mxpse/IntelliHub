@@ -6,7 +6,7 @@
 
   /* ---- State ---- */
   const state = {
-    currentSection: 'chat',
+    currentSection: 'ask',
     workbook: null,
     fileName: '',
     selectedSheet: 0,
@@ -68,23 +68,49 @@
     const question = input.value.trim();
     if (!question) return;
 
-    // Hide welcome state
+    // Hide welcome state, show info panel
     const welcome = $('#welcomeState');
-    if (welcome) welcome.remove();
+    if (welcome) welcome.style.display = 'none';
+    const convEl = $('#conversation');
+    if (convEl) convEl.style.display = 'none';
 
-    // Add user message
-    addChatMessage('user', question);
+    const infoPanel = $('#infoPanel');
+    infoPanel.hidden = false;
+
+    // Generate answer
+    const answer = generateAnswer(question);
+
+    // Populate info panel (left side — informative)
+    let sourcesHtml = '';
+    if (answer.citations && answer.citations.length > 0) {
+      sourcesHtml = `<div class="info-sources">
+        <div class="info-sources-label">Sources Referenced</div>
+        ${answer.citations.map(c => {
+          const item = findKBItem(c.id);
+          return `<div class="info-source-item type-${c.type}">
+            <div class="source-id">${esc(c.id)}</div>
+            <div class="source-title">${esc(c.title)}</div>
+            ${item ? `<div class="source-excerpt">${esc(item.content.substring(0, 120))}...</div>` : ''}
+          </div>`;
+        }).join('')}
+      </div>`;
+    }
+
+    const paragraphs = answer.text.split('\n\n').map(p => `<p>${esc(p)}</p>`).join('');
+    $('#infoPanelContent').innerHTML = `
+      <div class="info-answer">${paragraphs}</div>
+      ${sourcesHtml}`;
+
+    // Also post to the right-side chat as the initial question
+    addPanelMessage('user', 'You', question);
+    addPanelMessage('ai', 'IntelliHub AI', answer.text, answer.citations);
+
     input.value = '';
+  }
 
-    // Show loading
-    const loadingEl = addLoadingIndicator();
-
-    // Simulate AI processing
-    setTimeout(() => {
-      loadingEl.remove();
-      const answer = generateAnswer(question);
-      addChatMessage('ai', answer.text, answer.citations);
-    }, 1200 + Math.random() * 800);
+  function findKBItem(id) {
+    const allItems = [...KB.policies, ...KB.playbooks, ...KB.precedents, ...KB.wiki];
+    return allItems.find(item => item.id === id);
   }
 
   function addChatMessage(type, text, citations) {
@@ -688,6 +714,97 @@
   }
 
   /* ---- Team Conversation Panel ---- */
+  /* ---- Right Panel: Live Discussion ---- */
+  function addPanelMessage(type, sender, text, citations) {
+    const container = $('#panelMessages');
+    const msg = document.createElement('div');
+    msg.className = `panel-msg ${type === 'ai' ? 'panel-msg-ai' : ''}`;
+
+    // Process @statutory mentions for display
+    const displayText = text.replace(/@statutory/gi, '<span class="mention">@statutory</span>');
+
+    if (type === 'ai') {
+      msg.innerHTML = `
+        <div class="panel-msg-head">
+          <span class="panel-av" style="background:#1a73e8">AI</span>
+          <span class="panel-name">${esc(sender)}</span>
+          <span class="panel-badge">AI</span>
+          <span class="panel-time">${new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
+        </div>
+        <div class="panel-msg-body">${displayText.substring(0, 300)}${text.length > 300 ? '...' : ''}</div>
+        ${citations && citations.length > 0 ? `<div class="panel-rec-meta"><span class="panel-cite">${citations.length} sources cited</span></div>` : ''}`;
+    } else if (type === 'team') {
+      msg.innerHTML = `
+        <div class="panel-msg-head">
+          <span class="panel-av" style="background:${sender.color}">${esc(sender.initials)}</span>
+          <span class="panel-name">${esc(sender.name)}</span>
+          <span class="panel-role">${esc(sender.role)}</span>
+          <span class="panel-time">${new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
+        </div>
+        <div class="panel-msg-body">${displayText}</div>`;
+    } else {
+      msg.innerHTML = `
+        <div class="panel-msg-head">
+          <span class="panel-av" style="background:#3572a5">Y</span>
+          <span class="panel-name">${esc(sender)}</span>
+          <span class="panel-time">${new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
+        </div>
+        <div class="panel-msg-body">${displayText}</div>`;
+    }
+
+    container.appendChild(msg);
+    container.scrollTop = container.scrollHeight;
+  }
+
+  function handleStatutoryMention(text) {
+    // Extract query after @statutory
+    const match = text.match(/@statutory\s+(.+)/i);
+    if (!match) return null;
+
+    const query = match[1].trim().toLowerCase();
+    const items = window.STATUTORY_WIKI || [];
+    const found = items.filter(item =>
+      item.title.toLowerCase().includes(query) ||
+      item.content.toLowerCase().includes(query) ||
+      item.country.toLowerCase().includes(query) ||
+      item.category.toLowerCase().includes(query)
+    );
+
+    if (found.length === 0) {
+      return `I searched the Statutory Wiki for "${match[1].trim()}" but found no matching entries. Try using country names, categories like "Travel & Expense", or specific terms like "per-diem" or "overtime".`;
+    }
+
+    let response = `Found ${found.length} statutory reference${found.length > 1 ? 's' : ''} for "${match[1].trim()}":\n\n`;
+    found.slice(0, 3).forEach(item => {
+      response += `[${item.country}] ${item.title}: ${item.content.substring(0, 150)}...\n\n`;
+    });
+    return response;
+  }
+
+  function simulateTeamResponse(userText) {
+    const TC = window.TEAM_CONVERSATION;
+    if (!TC) return;
+
+    // Simulate a random team member responding after a delay
+    const teamMembers = ['marco', 'lena', 'rajesh', 'jason'];
+    const randomMember = teamMembers[Math.floor(Math.random() * teamMembers.length)];
+    const person = TC.people[randomMember];
+
+    const responses = [
+      "Good question. I've seen something similar in a recent case — let me check.",
+      "I'd recommend checking the configuration hierarchy first. Rule precedence can cause unexpected behavior.",
+      "This aligns with what we resolved in CRM-107. The evaluation sequence was the root cause.",
+      "Let me pull up the playbook on this. We documented a similar pattern last quarter.",
+      "Interesting — I think this might be related to the interval definition conflicts we saw in APAC.",
+    ];
+
+    const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+
+    setTimeout(() => {
+      addPanelMessage('team', person, randomResponse);
+    }, 2000 + Math.random() * 2000);
+  }
+
   function initTeamPanel() {
     const TC = window.TEAM_CONVERSATION;
     if (!TC) return;
@@ -695,6 +812,7 @@
     const container = $('#panelMessages');
     if (!container) return;
 
+    // Load initial conversation messages
     TC.messages.forEach((msg, idx) => {
       const person = TC.people[msg.person];
       const el = document.createElement('div');
@@ -716,12 +834,6 @@
               <span class="panel-conf">Confidence: ${Math.round(msg.confidence * 100)}%</span>
               <span class="panel-cite">${msg.citations.length} sources cited</span>
             </div>
-          </div>
-          <div class="panel-msg-actions">
-            <button class="approve-btn" data-idx="${idx}" data-type="best-practice">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-              Approve as Best Practice
-            </button>
           </div>`;
       } else {
         el.className = 'panel-msg';
@@ -732,45 +844,50 @@
             <span class="panel-role">${esc(person.role)}</span>
             <span class="panel-time">${esc(msg.time)}</span>
           </div>
-          <div class="panel-msg-body">${esc(msg.body)}</div>
-          <div class="panel-msg-actions">
-            <button class="approve-btn" data-idx="${idx}" data-type="confirmed">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-              Confirm as Approved Practice
-            </button>
-          </div>`;
+          <div class="panel-msg-body">${esc(msg.body)}</div>`;
       }
 
       container.appendChild(el);
     });
 
-    // Wire up approve buttons
-    container.querySelectorAll('.approve-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const idx = parseInt(btn.dataset.idx);
-        const msg = TC.messages[idx];
-        const person = TC.people[msg.person];
+    // Panel composer — live chat with @statutory support
+    const sendBtn = $('#panelChatSend');
+    const chatInput = $('#panelChatInput');
 
-        // Archive the message content
-        const entry = {
-          id: 'ARCH-' + String(state.archivedPractices.length + 1).padStart(3, '0'),
-          type: 'playbook',
-          title: msg.isRecommendation ? msg.title : `Confirmed practice from ${person.name}`,
-          content: msg.isRecommendation ? `${msg.body} Next step: ${msg.nextStep}` : msg.body,
-          tags: ['team-confirmed', 'conversation-sourced'],
-          status: 'Validated — Team Confirmed',
-          lastUpdated: new Date().toISOString().split('T')[0],
-        };
+    if (sendBtn && chatInput) {
+      const sendMessage = () => {
+        const text = chatInput.value.trim();
+        if (!text) return;
 
-        state.archivedPractices.push(entry);
-        KB.playbooks.push(entry);
+        // Post user message
+        addPanelMessage('user', 'You', text);
+        chatInput.value = '';
 
-        // Visual feedback
-        btn.disabled = true;
-        btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Archived to Knowledge Base`;
-        btn.classList.add('approved');
+        // Check for @statutory mention
+        if (text.toLowerCase().includes('@statutory')) {
+          const statutoryResponse = handleStatutoryMention(text);
+          if (statutoryResponse) {
+            setTimeout(() => {
+              addPanelMessage('ai', 'IntelliHub AI', statutoryResponse);
+            }, 800 + Math.random() * 600);
+          }
+        } else {
+          // Simulate team member response for collaborative feel
+          simulateTeamResponse(text);
+        }
+      };
+
+      sendBtn.addEventListener('click', sendMessage);
+      chatInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          sendMessage();
+        }
       });
-    });
+    }
+
+    // Scroll to bottom
+    container.scrollTop = container.scrollHeight;
   }
 
   /* ---- Initialize ---- */
