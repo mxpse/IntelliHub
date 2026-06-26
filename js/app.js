@@ -84,17 +84,19 @@
   /* ---- Right Panel: Live Discussion ---- */
   function addPanelMessage(type, sender, text, citations, extras) {
     const container = $('#panelMessages');
+    if (!container) return;
     const msg = document.createElement('div');
-    const displayText = text.replace(/@statutory/gi, '<span class="mention">@statutory</span>');
+    const safeText = esc(text);
+    const displayText = safeText.replace(/@statutory/gi, '<span class="mention">@statutory</span>');
     if (type === 'ai') {
       msg.className = 'panel-msg panel-msg-ai';
-      msg.innerHTML = `<div class="panel-msg-head"><span class="panel-av" style="background:#1a73e8">AI</span><span class="panel-name">${esc(sender)}</span><span class="panel-badge">AI</span><span class="panel-time">${timeNow()}</span></div><div class="panel-msg-body">${displayText.substring(0, 400)}${text.length > 400 ? '...' : ''}</div>${citations && citations.length > 0 ? `<div class="panel-rec-meta"><span class="panel-cite">${citations.length} sources cited</span></div>` : ''}${extras || ''}`;
+      msg.innerHTML = `<div class="panel-msg-head"><span class="panel-av" style="background:#1a73e8">AI</span><span class="panel-name">${esc(String(sender))}</span><span class="panel-badge">AI</span><span class="panel-time">${timeNow()}</span></div><div class="panel-msg-body">${displayText.substring(0, 500)}${safeText.length > 500 ? '...' : ''}</div>${citations && citations.length > 0 ? `<div class="panel-rec-meta"><span class="panel-cite">${citations.length} sources cited</span></div>` : ''}${extras || ''}`;
     } else if (type === 'team') {
       msg.className = 'panel-msg';
-      msg.innerHTML = `<div class="panel-msg-head"><span class="panel-av" style="background:${sender.color}">${esc(sender.initials)}</span><span class="panel-name">${esc(sender.name)}</span><span class="panel-role">${esc(sender.role)}</span><span class="panel-time">${timeNow()}</span></div><div class="panel-msg-body">${displayText}</div>${extras || ''}`;
+      msg.innerHTML = `<div class="panel-msg-head"><span class="panel-av" style="background:${sender.color || '#666'}">${esc(sender.initials || '?')}</span><span class="panel-name">${esc(sender.name || 'Unknown')}</span><span class="panel-role">${esc(sender.role || '')}</span><span class="panel-time">${timeNow()}</span></div><div class="panel-msg-body">${displayText}</div>${extras || ''}`;
     } else {
       msg.className = 'panel-msg';
-      msg.innerHTML = `<div class="panel-msg-head"><span class="panel-av" style="background:#3572a5">Y</span><span class="panel-name">${esc(sender)}</span><span class="panel-time">${timeNow()}</span></div><div class="panel-msg-body">${displayText}</div>${extras || ''}`;
+      msg.innerHTML = `<div class="panel-msg-head"><span class="panel-av" style="background:#3572a5">Y</span><span class="panel-name">${esc(String(sender))}</span><span class="panel-time">${timeNow()}</span></div><div class="panel-msg-body">${displayText}</div>${extras || ''}`;
     }
     container.insertBefore(msg, container.firstChild);
   }
