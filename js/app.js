@@ -23,6 +23,7 @@
   function initAsk() {
     const input = $('#askInput');
     const btn = $('#askBtn');
+    if (!input || !btn) return;
     btn.addEventListener('click', () => submitQuestion());
     input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitQuestion(); } });
     $$('.hint-chip').forEach(chip => { chip.addEventListener('click', () => { input.value = chip.dataset.q; submitQuestion(); }); });
@@ -317,7 +318,7 @@
   /* ---- File Converter ---- */
   function initConverter() {
     const zone = $('#uploadZone'); const fileInput = $('#fileInput'); const removeBtn = $('#fileRemove'); const convertBtn = $('#convertBtn'); const sheetSelect = $('#sheetSelect');
-    if (!zone) return;
+    if (!zone || !fileInput || !removeBtn || !convertBtn || !sheetSelect) return;
     zone.addEventListener('click', () => fileInput.click());
     fileInput.addEventListener('change', (e) => { if (e.target.files.length > 0) handleFile(e.target.files[0]); });
     zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.classList.add('drag-over'); });
@@ -418,6 +419,18 @@
   }
 
   /* ---- Init ---- */
-  function init() { initNav(); initAsk(); initPanelChat(); initResolved(); initDemo(); initTeamChat(); initTeamPanel(); initConverter(); initKnowledgeBase(); initCapture(); initStatutoryWiki(); }
+  function init() {
+    try { initNav(); } catch(e) { console.error('initNav:', e); }
+    try { initAsk(); } catch(e) { console.error('initAsk:', e); }
+    try { initPanelChat(); } catch(e) { console.error('initPanelChat:', e); }
+    try { initResolved(); } catch(e) { console.error('initResolved:', e); }
+    try { initDemo(); } catch(e) { console.error('initDemo:', e); }
+    try { initTeamChat(); } catch(e) { console.error('initTeamChat:', e); }
+    try { initTeamPanel(); } catch(e) { console.error('initTeamPanel:', e); }
+    try { initConverter(); } catch(e) { console.error('initConverter:', e); }
+    try { initKnowledgeBase(); } catch(e) { console.error('initKnowledgeBase:', e); }
+    try { initCapture(); } catch(e) { console.error('initCapture:', e); }
+    try { initStatutoryWiki(); } catch(e) { console.error('initStatutoryWiki:', e); }
+  }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
