@@ -39,6 +39,15 @@
               <h1>Team Chat</h1>
               <p class="hero-sub">Real-time team discussions on configuration issues, resolutions, and best practices. Confirmed outcomes are archived to the Knowledge Vault.</p>
             </div>
+            <div class="team-chat-composer">
+              <div class="composer-wrap">
+                <textarea id="teamChatInput" class="composer-input" placeholder="Ask a question or share an update with the team..." rows="2"></textarea>
+                <button class="composer-btn" id="teamChatSend">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2Z"/></svg>
+                  Post
+                </button>
+              </div>
+            </div>
             <div class="team-chat-feed" id="teamChatFeed">
               <!-- Populated by JS — mirrors the right panel but in full width -->
             </div>

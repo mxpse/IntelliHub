@@ -497,6 +497,58 @@
     const TC = window.TEAM_CONVERSATION;
     if (!TC) return;
 
+    // Composer
+    const sendBtn = $('#teamChatSend');
+    const input = $('#teamChatInput');
+    if (sendBtn && input) {
+      const postMessage = () => {
+        const text = input.value.trim();
+        if (!text) return;
+
+        const el = document.createElement('div');
+        el.className = 'chat-message user';
+        el.style.marginLeft = '0';
+        el.innerHTML = `
+          <div class="chat-sender">You · Team Member</div>
+          <div class="chat-body"><p>${esc(text)}</p></div>
+          <div class="panel-msg-actions">
+            <button class="approve-btn" data-type="confirmed">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+              Confirm as Approved Practice
+            </button>
+          </div>`;
+
+        feed.insertBefore(el, feed.firstChild);
+        input.value = '';
+
+        // Wire approve button on new message
+        el.querySelector('.approve-btn').addEventListener('click', function() {
+          const entry = {
+            id: 'ARCH-' + String(state.archivedPractices.length + 1).padStart(3, '0'),
+            type: 'playbook',
+            title: 'Confirmed practice from team discussion',
+            content: text,
+            tags: ['team-confirmed', 'conversation-sourced'],
+            status: 'Validated — Team Confirmed',
+            lastUpdated: new Date().toISOString().split('T')[0],
+          };
+          state.archivedPractices.push(entry);
+          KB.playbooks.push(entry);
+          this.disabled = true;
+          this.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Archived to Knowledge Vault`;
+          this.classList.add('approved');
+        });
+      };
+
+      sendBtn.addEventListener('click', postMessage);
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          postMessage();
+        }
+      });
+    }
+
     TC.messages.forEach((msg, idx) => {
       const person = TC.people[msg.person];
       const el = document.createElement('div');
