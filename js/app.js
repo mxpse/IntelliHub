@@ -253,7 +253,20 @@
           document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
         });
       }, 200);
+      // Show pulsing reset button after demo completes
+      setTimeout(() => { showDemoResetButton(); }, 1500);
     }, 15000);
+  }
+
+  function showDemoResetButton() {
+    const existing = document.getElementById('demoResetBtn');
+    if (existing) return;
+    const btn = document.createElement('button');
+    btn.id = 'demoResetBtn';
+    btn.className = 'demo-reset-btn';
+    btn.innerHTML = '&#x21BA; Start Over';
+    btn.addEventListener('click', () => { window.location.reload(); });
+    document.body.appendChild(btn);
   }
 
   function downloadTemplate() {
