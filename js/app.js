@@ -26,7 +26,8 @@
     btn.addEventListener('click', () => submitQuestion());
     input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitQuestion(); } });
     $$('.hint-chip').forEach(chip => { chip.addEventListener('click', () => { input.value = chip.dataset.q; submitQuestion(); }); });
-    $('#askTeamBtn').addEventListener('click', () => { const input = $('#panelChatInput'); input.focus(); input.placeholder = 'Share findings with the team...'; });
+    const askTeamBtn = $('#askTeamBtn');
+    if (askTeamBtn) askTeamBtn.addEventListener('click', () => { const ci = $('#panelChatInput'); if (ci) { ci.focus(); ci.placeholder = 'Share findings with the team...'; } });
   }
 
   function submitQuestion(questionText) {
@@ -180,14 +181,15 @@
 
   function runDemo() {
     const TC = window.TEAM_CONVERSATION;
-    const SW = window.STATUTORY_WIKI;
+    const SW = window.STATUTORY_WIKI || [];
+    if (!TC || !TC.people) return;
     switchSection('ask');
     // Reset state
     const welcome = $('#welcomeState'); if (welcome) welcome.hidden = true;
     const hints = $('#askHints'); if (hints) hints.hidden = true;
-    const panel = $('#findingsPanel'); panel.hidden = false;
-    const container = $('#panelMessages'); container.innerHTML = '';
-    $('#findingsContent').innerHTML = '<p style="color:var(--ink-muted)">Demo starting...</p>';
+    const panel = $('#findingsPanel'); if (panel) panel.hidden = false;
+    const container = $('#panelMessages'); if (container) container.innerHTML = '';
+    const fc = $('#findingsContent'); if (fc) fc.innerHTML = '<p style="color:var(--ink-muted)">Demo starting...</p>';
 
     const marco = TC.people.marco;
     const lena = TC.people.lena;
@@ -212,14 +214,16 @@
     // Step 4: AI responds with statutory reference
     setTimeout(() => {
       const germanyItem = SW.find(s => s.country === 'Germany');
-      const response = `[Germany] ${germanyItem.title}: ${germanyItem.content}\n\nThe flat file template requires columns: EmployeeID, TravelDate, DestinationCountry, DaysAbsent, FullDayRate, PartialDayRate, TotalReimbursement.`;
+      const response = germanyItem
+        ? `[Germany] ${germanyItem.title}: ${germanyItem.content}\n\nThe flat file template requires columns: EmployeeID, TravelDate, DestinationCountry, DaysAbsent, FullDayRate, PartialDayRate, TotalReimbursement.`
+        : 'The flat file template requires columns: EmployeeID, TravelDate, DestinationCountry, DaysAbsent, FullDayRate, PartialDayRate, TotalReimbursement.';
       addPanelMessage('ai', 'IntelliHub AI', response, null, '<a class="chat-download-link" id="demoTemplateLink">&#x1F4E5; Download Template (CSV)</a>');
       updateFindings('Statutory reference found: Germany per-diem rates apply. Flat file template identified with required columns.');
       // Wire download
       setTimeout(() => {
         const dl = document.getElementById('demoTemplateLink');
-        if (dl) dl.addEventListener('click', () => downloadTemplate());
-      }, 100);
+        if (dl) dl.addEventListener('click', (e) => { e.preventDefault(); downloadTemplate(); });
+      }, 200);
     }, 9000);
 
     // Step 5: Marco asks @statutory for specific figures
@@ -240,13 +244,14 @@
       updateFindings('Flat file generated with 3 employee travel records for Germany, France, and Japan.');
       setTimeout(() => {
         const dl = document.getElementById('demoFlatFileLink');
-        if (dl) dl.addEventListener('click', () => {
+        if (dl) dl.addEventListener('click', (e) => {
+          e.preventDefault();
           const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a'); a.href = url; a.download = 'travel_reimbursement_data.csv';
           document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
         });
-      }, 100);
+      }, 200);
     }, 15000);
   }
 
