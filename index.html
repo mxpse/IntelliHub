@@ -22,6 +22,9 @@
         <a href="#knowledge" class="nav-link" data-section="knowledge">&#x1F4DA; Knowledge Vault</a>
         <a href="#statutory" class="nav-link" data-section="statutory">Statutory Wiki</a>
       </nav>
+      <div class="header-actions">
+        <button class="demo-trigger-btn" id="demoTriggerBtn">&#x25B6; Demo</button>
+      </div>
       <div class="header-meta">
         <span class="status-dot"></span>
         <span class="status-text">Connected to internal sources</span>
@@ -35,37 +38,27 @@
         <!-- AI Q&A Section (default landing) -->
         <section class="section section-ask active" id="section-ask">
           <div class="section-inner">
-            <div class="hero-compact">
-              <h1>What can I help you find?</h1>
-              <p class="hero-sub">I reference our internal wiki, KB articles, playbooks, and resolved cases to give you accurate, sourced answers.</p>
-            </div>
-
-            <div class="ask-container">
-              <div class="ask-input-wrap">
-                <textarea id="askInput" class="ask-input" placeholder="Ask a question about our processes, configurations, best practices, or past resolutions..." rows="3"></textarea>
-                <button class="ask-btn" id="askBtn">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2Z"/></svg>
-                  Ask
+            <!-- Findings panel: shows at top after question submitted -->
+            <div class="findings-panel" id="findingsPanel" hidden>
+              <div class="findings-header">
+                <h2 class="findings-title">AI SME Findings</h2>
+                <button class="ask-team-btn" id="askTeamBtn">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+                  Ask The Team
                 </button>
               </div>
-              <div class="ask-hints">
-                <span class="hint-label">Try:</span>
-                <button class="hint-chip" data-q="How do I troubleshoot partial-day travel reimbursement results?">Travel reimbursement config</button>
-                <button class="hint-chip" data-q="What is the rule evaluation sequence for configuration changes?">Rule evaluation sequence</button>
-                <button class="hint-chip" data-q="What are the escalation criteria for unresolved configuration issues?">Escalation criteria</button>
-              </div>
-            </div>
-
-            <!-- Informative panel: shows after question is submitted -->
-            <div class="info-panel" id="infoPanel" hidden>
-              <div class="info-panel-content" id="infoPanelContent">
-                <!-- Populated by JS with AI answer + sources -->
+              <div class="findings-content" id="findingsContent">
+                <!-- Populated by JS -->
               </div>
             </div>
 
             <!-- Welcome state (before any question) -->
-            <div class="conversation" id="conversation">
-              <div class="welcome-state" id="welcomeState">
+            <div id="welcomeState">
+              <div class="hero-compact">
+                <h1>What can I help you find?</h1>
+                <p class="hero-sub">I reference our internal wiki, KB articles, playbooks, and resolved cases to give you accurate, sourced answers.</p>
+              </div>
+              <div class="welcome-state">
                 <div class="welcome-icon">
                   <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
                 </div>
@@ -76,6 +69,23 @@
                   <span class="source-badge badge-precedent">CRM Precedent</span>
                   <span class="source-badge badge-wiki">Internal Wiki</span>
                 </div>
+              </div>
+            </div>
+
+            <!-- Question bar: always visible, moves to bottom after first question -->
+            <div class="ask-container" id="askContainer">
+              <div class="ask-input-wrap">
+                <textarea id="askInput" class="ask-input" placeholder="Ask a question about our processes, configurations, best practices, or past resolutions..." rows="2"></textarea>
+                <button class="ask-btn" id="askBtn">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2Z"/></svg>
+                  Ask
+                </button>
+              </div>
+              <div class="ask-hints" id="askHints">
+                <span class="hint-label">Try:</span>
+                <button class="hint-chip" data-q="How do I troubleshoot partial-day travel reimbursement results?">Travel reimbursement config</button>
+                <button class="hint-chip" data-q="What is the rule evaluation sequence for configuration changes?">Rule evaluation sequence</button>
+                <button class="hint-chip" data-q="What are the escalation criteria for unresolved configuration issues?">Escalation criteria</button>
               </div>
             </div>
           </div>
@@ -261,7 +271,7 @@
         </section>
       </main>
 
-      <!-- Right side: Live Collaborative Chat -->
+      <!-- Right side: Live Discussion -->
       <aside class="team-panel" id="teamPanel">
         <div class="panel-header">
           <div class="panel-title-row">
@@ -276,9 +286,7 @@
             <span class="presence-text">4 team members online</span>
           </div>
         </div>
-        <div class="panel-messages" id="panelMessages">
-          <!-- Populated by JS from conversation data -->
-        </div>
+        <!-- Chat input at the top -->
         <div class="panel-composer">
           <div class="panel-composer-hints">
             <span class="mention-hint">Type <strong>@statutory</strong> to query statutory wiki in conversation</span>
@@ -289,6 +297,27 @@
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2Z"/></svg>
             </button>
           </div>
+        </div>
+        <!-- Resolved banner -->
+        <div class="resolved-banner" id="resolvedBanner" hidden>
+          <div class="resolved-content">
+            <span class="resolved-badge">&#x2705; Marked as Resolved</span>
+            <div class="resolved-actions">
+              <button class="resolved-approve-btn" id="resolvedApproveBtn">Approve Resolution</button>
+              <button class="resolved-followup-btn" id="resolvedFollowupBtn">Follow-up Question</button>
+            </div>
+          </div>
+        </div>
+        <!-- Messages: newest at top -->
+        <div class="panel-messages" id="panelMessages">
+          <!-- Populated by JS -->
+        </div>
+        <!-- Resolve button at bottom -->
+        <div class="panel-resolve-footer">
+          <button class="resolve-btn" id="resolveBtn">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+            Mark as Resolved
+          </button>
         </div>
       </aside>
     </div>

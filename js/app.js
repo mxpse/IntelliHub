@@ -1,910 +1,418 @@
-/* IntelliHub — Application Logic
-   Handles: Navigation, AI Q&A, Excel Upload/Conversion, Knowledge Base rendering */
-
+/* IntelliHub — Application Logic */
 (function () {
   const KB = window.KNOWLEDGE_BASE;
-
-  /* ---- State ---- */
-  const state = {
-    currentSection: 'ask',
-    workbook: null,
-    fileName: '',
-    selectedSheet: 0,
-    sheetData: null,
-    archivedPractices: [],
-  };
-
-  /* ---- Helpers ---- */
+  const state = { currentSection: 'ask', workbook: null, fileName: '', selectedSheet: 0, sheetData: null, archivedPractices: [], questionAsked: false };
   const $ = (sel) => document.querySelector(sel);
   const $$ = (sel) => document.querySelectorAll(sel);
-
-  function esc(s) {
-    const d = document.createElement('div');
-    d.textContent = s;
-    return d.innerHTML;
-  }
+  function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+  function timeNow() { return new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); }
 
   /* ---- Navigation ---- */
   function initNav() {
     $$('.nav-link').forEach(link => {
-      link.addEventListener('click', (e) => {
-        e.preventDefault();
-        const section = link.dataset.section;
-        switchSection(section);
-      });
+      link.addEventListener('click', (e) => { e.preventDefault(); switchSection(link.dataset.section); });
     });
   }
-
   function switchSection(name) {
     state.currentSection = name;
     $$('.nav-link').forEach(l => l.classList.toggle('active', l.dataset.section === name));
     $$('.section').forEach(s => s.classList.toggle('active', s.id === 'section-' + name));
   }
 
-  /* ---- AI Q&A ---- */
+  /* ---- Ask AI SME ---- */
   function initAsk() {
     const input = $('#askInput');
     const btn = $('#askBtn');
-    const hints = $$('.hint-chip');
-
     btn.addEventListener('click', () => submitQuestion());
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        submitQuestion();
-      }
-    });
-
-    hints.forEach(chip => {
-      chip.addEventListener('click', () => {
-        input.value = chip.dataset.q;
-        submitQuestion();
-      });
-    });
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitQuestion(); } });
+    $$('.hint-chip').forEach(chip => { chip.addEventListener('click', () => { input.value = chip.dataset.q; submitQuestion(); }); });
+    $('#askTeamBtn').addEventListener('click', () => { const input = $('#panelChatInput'); input.focus(); input.placeholder = 'Share findings with the team...'; });
   }
 
-  function submitQuestion() {
+  function submitQuestion(questionText) {
     const input = $('#askInput');
-    const question = input.value.trim();
+    const question = questionText || input.value.trim();
     if (!question) return;
-
-    // Hide welcome state, show info panel
+    // Hide welcome, show findings at top
     const welcome = $('#welcomeState');
-    if (welcome) welcome.style.display = 'none';
-    const convEl = $('#conversation');
-    if (convEl) convEl.style.display = 'none';
-
-    const infoPanel = $('#infoPanel');
-    infoPanel.hidden = false;
-
+    if (welcome) welcome.hidden = true;
+    const hints = $('#askHints');
+    if (hints) hints.hidden = true;
+    const findingsPanel = $('#findingsPanel');
+    findingsPanel.hidden = false;
     // Generate answer
     const answer = generateAnswer(question);
-
-    // Populate info panel (left side — informative)
+    // Populate findings (left panel - informative)
     let sourcesHtml = '';
     if (answer.citations && answer.citations.length > 0) {
-      sourcesHtml = `<div class="info-sources">
-        <div class="info-sources-label">Sources Referenced</div>
-        ${answer.citations.map(c => {
-          const item = findKBItem(c.id);
-          return `<div class="info-source-item type-${c.type}">
-            <div class="source-id">${esc(c.id)}</div>
-            <div class="source-title">${esc(c.title)}</div>
-            ${item ? `<div class="source-excerpt">${esc(item.content.substring(0, 120))}...</div>` : ''}
-          </div>`;
-        }).join('')}
-      </div>`;
+      sourcesHtml = `<div class="findings-sources"><div class="findings-sources-label">Sources Referenced</div>${answer.citations.map(c => {
+        const item = findKBItem(c.id);
+        return `<div class="findings-source-item type-${c.type}"><div class="source-id">${esc(c.id)}</div><div class="source-title">${esc(c.title)}</div>${item ? `<div class="source-excerpt">${esc(item.content.substring(0, 140))}...</div>` : ''}</div>`;
+      }).join('')}</div>`;
     }
-
     const paragraphs = answer.text.split('\n\n').map(p => `<p>${esc(p)}</p>`).join('');
-    $('#infoPanelContent').innerHTML = `
-      <div class="info-answer">${paragraphs}</div>
-      ${sourcesHtml}`;
-
-    // Also post to the right-side chat as the initial question
+    $('#findingsContent').innerHTML = `<div class="findings-answer">${paragraphs}</div>${sourcesHtml}`;
+    // Post to right panel chat
     addPanelMessage('user', 'You', question);
-    addPanelMessage('ai', 'IntelliHub AI', answer.text, answer.citations);
-
+    setTimeout(() => { addPanelMessage('ai', 'IntelliHub AI', answer.text, answer.citations); }, 800);
     input.value = '';
+    state.questionAsked = true;
   }
 
-  function findKBItem(id) {
-    const allItems = [...KB.policies, ...KB.playbooks, ...KB.precedents, ...KB.wiki];
-    return allItems.find(item => item.id === id);
-  }
-
-  function addChatMessage(type, text, citations) {
-    const conv = $('#conversation');
-    const msg = document.createElement('div');
-    msg.className = `chat-message ${type}`;
-
-    const sender = type === 'user' ? 'You' : 'IntelliHub AI';
-    let html = `<div class="chat-sender">${sender}</div><div class="chat-body">`;
-
-    if (type === 'ai') {
-      // Render paragraphs
-      const paragraphs = text.split('\n\n');
-      paragraphs.forEach(p => {
-        if (p.startsWith('- ')) {
-          html += '<p>' + p.split('\n').map(l => esc(l)).join('<br>') + '</p>';
-        } else {
-          html += `<p>${esc(p)}</p>`;
-        }
-      });
-    } else {
-      html += `<p>${esc(text)}</p>`;
-    }
-
-    html += '</div>';
-
-    if (citations && citations.length > 0) {
-      html += `<div class="chat-citations">
-        <div class="citation-label">Sources referenced</div>
-        <div class="citation-list">`;
-      citations.forEach(c => {
-        html += `<span class="citation-tag ${c.type}">${esc(c.id)} — ${esc(c.title)}</span>`;
-      });
-      html += '</div></div>';
-    }
-
-    msg.innerHTML = html;
-    conv.appendChild(msg);
-    conv.scrollTop = conv.scrollHeight;
-  }
-
-  function addLoadingIndicator() {
-    const conv = $('#conversation');
-    const loading = document.createElement('div');
-    loading.className = 'chat-loading';
-    loading.innerHTML = `
-      <div class="loading-dots"><span></span><span></span><span></span></div>
-      <span class="loading-text">Searching internal knowledge base...</span>`;
-    conv.appendChild(loading);
-    conv.scrollTop = conv.scrollHeight;
-    return loading;
-  }
+  function findKBItem(id) { return [...KB.policies, ...KB.playbooks, ...KB.precedents, ...KB.wiki].find(item => item.id === id); }
 
   function generateAnswer(question) {
     const q = question.toLowerCase();
     const allItems = [...KB.policies, ...KB.playbooks, ...KB.precedents, ...KB.wiki];
-
-    // Score relevance
     const scored = allItems.map(item => {
       let score = 0;
-      const words = q.split(/\s+/);
-      words.forEach(word => {
-        if (word.length < 3) return;
-        if (item.title.toLowerCase().includes(word)) score += 3;
-        if (item.content.toLowerCase().includes(word)) score += 2;
-        if (item.tags && item.tags.some(t => t.toLowerCase().includes(word))) score += 4;
-      });
+      q.split(/\s+/).forEach(word => { if (word.length < 3) return; if (item.title.toLowerCase().includes(word)) score += 3; if (item.content.toLowerCase().includes(word)) score += 2; if (item.tags && item.tags.some(t => t.toLowerCase().includes(word))) score += 4; });
       return { item, score };
     });
-
-    // Get top matches
     const relevant = scored.filter(s => s.score > 0).sort((a, b) => b.score - a.score).slice(0, 4);
-
     if (relevant.length === 0) {
-      return {
-        text: "I couldn't find specific information about that in our internal knowledge base. Here are some suggestions:\n\n- Try rephrasing your question with specific configuration or process terms\n- Check if the topic falls under a specific KB article number\n- For new topics not yet documented, consider reaching out to your team lead or SME\n\nI only provide answers sourced from confirmed internal resources — I won't guess or provide unverified information.",
-        citations: []
-      };
+      return { text: "I couldn't find specific information about that in our internal knowledge base. Try rephrasing with specific configuration or process terms.", citations: [] };
     }
-
-    // Build answer from relevant sources
     const primary = relevant[0].item;
-    let answer = '';
+    let answer = primary.content + '\n\n';
+    if (relevant.length > 1) { answer += 'Related: ' + relevant.slice(1, 3).map(r => r.item.title).join(', ') + '.'; }
+    return { text: answer.trim(), citations: relevant.slice(0, 4).map(r => ({ id: r.item.id, title: r.item.title, type: r.item.type })) };
+  }
 
-    if (q.includes('troubleshoot') || q.includes('issue') || q.includes('problem') || q.includes('partial') || q.includes('reimbursement')) {
-      answer = `Based on our approved documentation, here's what I found:\n\n${primary.content}\n\n`;
-      if (relevant.length > 1) {
-        answer += `Additional context from related sources:\n\n`;
-        relevant.slice(1, 3).forEach(r => {
-          answer += `- ${r.item.title}: ${r.item.content.substring(0, 150)}...\n\n`;
-        });
-      }
-    } else if (q.includes('escalat')) {
-      answer = `Here's the escalation guidance from our approved policy:\n\n${primary.content}\n\n`;
-      if (relevant.length > 1) {
-        answer += `Related: ${relevant[1].item.title} — ${relevant[1].item.content.substring(0, 120)}...`;
-      }
-    } else if (q.includes('process') || q.includes('how do') || q.includes('steps') || q.includes('checklist')) {
-      answer = `Here's the documented process:\n\n${primary.content}\n\n`;
-      if (relevant.length > 1) {
-        answer += `You may also find this helpful: ${relevant[1].item.title}.`;
-      }
-    } else if (q.includes('rule') || q.includes('evaluation') || q.includes('sequence') || q.includes('precedence')) {
-      answer = `Regarding rule evaluation and precedence:\n\n${primary.content}\n\n`;
-      if (relevant.length > 1) {
-        answer += `See also: ${relevant[1].item.title} — ${relevant[1].item.content.substring(0, 150)}...`;
-      }
+  /* ---- Right Panel: Live Discussion ---- */
+  function addPanelMessage(type, sender, text, citations, extras) {
+    const container = $('#panelMessages');
+    const msg = document.createElement('div');
+    const displayText = text.replace(/@statutory/gi, '<span class="mention">@statutory</span>');
+    if (type === 'ai') {
+      msg.className = 'panel-msg panel-msg-ai';
+      msg.innerHTML = `<div class="panel-msg-head"><span class="panel-av" style="background:#1a73e8">AI</span><span class="panel-name">${esc(sender)}</span><span class="panel-badge">AI</span><span class="panel-time">${timeNow()}</span></div><div class="panel-msg-body">${displayText.substring(0, 400)}${text.length > 400 ? '...' : ''}</div>${citations && citations.length > 0 ? `<div class="panel-rec-meta"><span class="panel-cite">${citations.length} sources cited</span></div>` : ''}${extras || ''}`;
+    } else if (type === 'team') {
+      msg.className = 'panel-msg';
+      msg.innerHTML = `<div class="panel-msg-head"><span class="panel-av" style="background:${sender.color}">${esc(sender.initials)}</span><span class="panel-name">${esc(sender.name)}</span><span class="panel-role">${esc(sender.role)}</span><span class="panel-time">${timeNow()}</span></div><div class="panel-msg-body">${displayText}</div>${extras || ''}`;
     } else {
-      answer = `Here's what I found in our knowledge base:\n\n${primary.content}\n\n`;
-      if (relevant.length > 1) {
-        answer += `Related resources:\n\n`;
-        relevant.slice(1, 3).forEach(r => {
-          answer += `- ${r.item.title}\n\n`;
-        });
-      }
+      msg.className = 'panel-msg';
+      msg.innerHTML = `<div class="panel-msg-head"><span class="panel-av" style="background:#3572a5">Y</span><span class="panel-name">${esc(sender)}</span><span class="panel-time">${timeNow()}</span></div><div class="panel-msg-body">${displayText}</div>${extras || ''}`;
     }
-
-    const citations = relevant.slice(0, 4).map(r => ({
-      id: r.item.id,
-      title: r.item.title,
-      type: r.item.type
-    }));
-
-    return { text: answer.trim(), citations };
+    container.insertBefore(msg, container.firstChild);
   }
 
-  /* ---- File Converter ---- */
-  function initConverter() {
-    const zone = $('#uploadZone');
-    const fileInput = $('#fileInput');
-    const removeBtn = $('#fileRemove');
-    const convertBtn = $('#convertBtn');
-    const sheetSelect = $('#sheetSelect');
-
-    // Click to upload
-    zone.addEventListener('click', () => fileInput.click());
-
-    // File input change
-    fileInput.addEventListener('change', (e) => {
-      if (e.target.files.length > 0) handleFile(e.target.files[0]);
-    });
-
-    // Drag and drop
-    zone.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      zone.classList.add('drag-over');
-    });
-
-    zone.addEventListener('dragleave', () => {
-      zone.classList.remove('drag-over');
-    });
-
-    zone.addEventListener('drop', (e) => {
-      e.preventDefault();
-      zone.classList.remove('drag-over');
-      if (e.dataTransfer.files.length > 0) handleFile(e.dataTransfer.files[0]);
-    });
-
-    // Remove file
-    removeBtn.addEventListener('click', resetConverter);
-
-    // Convert
-    convertBtn.addEventListener('click', convertFile);
-
-    // Sheet selection change
-    sheetSelect.addEventListener('change', () => {
-      state.selectedSheet = parseInt(sheetSelect.value);
-      renderPreview();
-    });
+  function handleStatutoryMention(text) {
+    const match = text.match(/@statutory\s+(.+)/i);
+    if (!match) return null;
+    const query = match[1].trim().toLowerCase();
+    const items = window.STATUTORY_WIKI || [];
+    const found = items.filter(item => item.title.toLowerCase().includes(query) || item.content.toLowerCase().includes(query) || item.country.toLowerCase().includes(query) || item.category.toLowerCase().includes(query));
+    if (found.length === 0) return `No statutory entries found for "${match[1].trim()}". Try country names or categories like "Travel & Expense".`;
+    let response = `Found ${found.length} statutory reference(s):\n\n`;
+    found.slice(0, 2).forEach(item => { response += `[${item.country}] ${item.title}: ${item.content.substring(0, 200)}...\n\n`; });
+    return response;
   }
 
-  function handleFile(file) {
-    const validTypes = [
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'application/vnd.ms-excel'
-    ];
-    const ext = file.name.split('.').pop().toLowerCase();
+  function generateFlatFileCSV(figures) {
+    const header = 'EmployeeID,TravelDate,DestinationCountry,DaysAbsent,FullDayRate,PartialDayRate,TotalReimbursement';
+    const rows = figures.map(f => f.join(','));
+    return header + '\n' + rows.join('\n');
+  }
 
-    if (!validTypes.includes(file.type) && !['xlsx', 'xls'].includes(ext)) {
-      alert('Please upload an Excel file (.xlsx or .xls)');
-      return;
-    }
-
-    state.fileName = file.name;
-    const reader = new FileReader();
-
-    reader.onload = (e) => {
-      try {
-        const data = new Uint8Array(e.target.result);
-        state.workbook = XLSX.read(data, { type: 'array' });
-        state.selectedSheet = 0;
-        showFilePreview();
-      } catch (err) {
-        alert('Error reading file. Please make sure it is a valid Excel file.');
-        console.error(err);
+  function initPanelChat() {
+    const sendBtn = $('#panelChatSend');
+    const chatInput = $('#panelChatInput');
+    if (!sendBtn || !chatInput) return;
+    const sendMessage = () => {
+      const text = chatInput.value.trim();
+      if (!text) return;
+      addPanelMessage('user', 'You', text);
+      chatInput.value = '';
+      if (text.toLowerCase().includes('@statutory')) {
+        const resp = handleStatutoryMention(text);
+        if (resp) setTimeout(() => { addPanelMessage('ai', 'IntelliHub AI', resp); updateFindings(resp); }, 900);
       }
     };
-
-    reader.readAsArrayBuffer(file);
+    sendBtn.addEventListener('click', sendMessage);
+    chatInput.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
   }
 
-  function showFilePreview() {
-    const wb = state.workbook;
-    const sheets = wb.SheetNames;
-
-    // Show preview panel, hide upload zone
-    $('#uploadZone').hidden = true;
-    $('#filePreview').hidden = false;
-
-    // File info
-    $('#fileName').textContent = state.fileName;
-    $('#fileMeta').textContent = `${sheets.length} sheet${sheets.length > 1 ? 's' : ''} detected`;
-
-    // Sheet selector
-    if (sheets.length > 1) {
-      const sel = $('#sheetSelect');
-      sel.innerHTML = '';
-      sheets.forEach((name, i) => {
-        const opt = document.createElement('option');
-        opt.value = i;
-        opt.textContent = name;
-        sel.appendChild(opt);
-      });
-      $('#sheetSelector').hidden = false;
-    } else {
-      $('#sheetSelector').hidden = true;
-    }
-
-    renderPreview();
-    showAiReview();
+  function updateFindings(newText) {
+    const content = $('#findingsContent');
+    if (!content || !state.questionAsked) return;
+    const update = document.createElement('div');
+    update.className = 'findings-answer';
+    update.innerHTML = `<p style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border-light)"><strong>Update from discussion:</strong></p><p>${esc(newText.substring(0, 300))}</p>`;
+    content.appendChild(update);
   }
 
-  function renderPreview() {
-    const wb = state.workbook;
-    const sheetName = wb.SheetNames[state.selectedSheet];
-    const sheet = wb.Sheets[sheetName];
-    const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-
-    state.sheetData = json;
-
-    if (json.length === 0) {
-      $('#previewTableWrap').hidden = true;
-      return;
-    }
-
-    $('#previewTableWrap').hidden = false;
-    const table = $('#previewTable');
-    let html = '';
-
-    // Header row
-    if (json[0]) {
-      html += '<thead><tr>';
-      json[0].forEach(cell => {
-        html += `<th>${esc(String(cell || ''))}</th>`;
-      });
-      html += '</tr></thead>';
-    }
-
-    // Data rows (first 5)
-    html += '<tbody>';
-    json.slice(1, 6).forEach(row => {
-      html += '<tr>';
-      const maxCols = json[0] ? json[0].length : row.length;
-      for (let i = 0; i < maxCols; i++) {
-        html += `<td>${esc(String(row[i] != null ? row[i] : ''))}</td>`;
-      }
-      html += '</tr>';
+  /* ---- Resolved Feature ---- */
+  function initResolved() {
+    const resolveBtn = $('#resolveBtn');
+    const banner = $('#resolvedBanner');
+    const approveBtn = $('#resolvedApproveBtn');
+    const followupBtn = $('#resolvedFollowupBtn');
+    if (!resolveBtn) return;
+    resolveBtn.addEventListener('click', () => {
+      resolveBtn.classList.add('resolved');
+      resolveBtn.innerHTML = '&#x2705; Resolved';
+      resolveBtn.disabled = true;
+      banner.hidden = false;
+      addPanelMessage('ai', 'IntelliHub AI', 'This discussion has been marked as resolved. The submitter can approve the resolution or submit follow-up questions.');
     });
-    html += '</tbody>';
-
-    table.innerHTML = html;
+    approveBtn.addEventListener('click', () => {
+      banner.innerHTML = '<div class="resolved-content"><span class="resolved-badge">&#x2705; Resolution Approved — Archived to Knowledge Vault</span></div>';
+      addPanelMessage('ai', 'IntelliHub AI', 'Resolution approved and archived to the Knowledge Vault. This is now searchable via Ask AI SME.');
+    });
+    followupBtn.addEventListener('click', () => {
+      banner.hidden = true;
+      resolveBtn.classList.remove('resolved');
+      resolveBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Mark as Resolved';
+      resolveBtn.disabled = false;
+      const input = $('#panelChatInput');
+      input.focus();
+      input.placeholder = 'Type your follow-up question...';
+    });
   }
 
-  function showAiReview() {
-    const wb = state.workbook;
-    const sheetName = wb.SheetNames[state.selectedSheet];
-    const sheet = wb.Sheets[sheetName];
-    const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-
-    const totalRows = json.length;
-    const totalCols = json[0] ? json[0].length : 0;
-    const emptyRows = json.filter(r => r.every(c => c == null || String(c).trim() === '')).length;
-    const headers = json[0] ? json[0].map(h => String(h || 'Unnamed')).join(', ') : 'No headers detected';
-
-    let review = `<strong>Structure:</strong> ${totalRows} rows, ${totalCols} columns across ${wb.SheetNames.length} sheet(s).<br>`;
-    review += `<strong>Headers:</strong> ${esc(headers)}<br>`;
-
-    if (emptyRows > 0) {
-      review += `<strong>Note:</strong> ${emptyRows} empty row(s) detected — these will be preserved in the conversion.<br>`;
-    }
-
-    if (totalRows > 1000) {
-      review += `<strong>Large file:</strong> This file has ${totalRows} rows. Conversion may take a moment.<br>`;
-    }
-
-    review += `<strong>Ready:</strong> File is valid and ready for conversion to CSV or TXT format.`;
-
-    $('#aiReview').hidden = false;
-    $('#aiReviewBody').innerHTML = review;
+  /* ---- DEMO SIMULATION ---- */
+  function initDemo() {
+    const btn = $('#demoTriggerBtn');
+    if (!btn) return;
+    btn.addEventListener('click', runDemo);
   }
 
-  function convertFile() {
-    if (!state.workbook) return;
+  function runDemo() {
+    const TC = window.TEAM_CONVERSATION;
+    const SW = window.STATUTORY_WIKI;
+    switchSection('ask');
+    // Reset state
+    const welcome = $('#welcomeState'); if (welcome) welcome.hidden = true;
+    const hints = $('#askHints'); if (hints) hints.hidden = true;
+    const panel = $('#findingsPanel'); panel.hidden = false;
+    const container = $('#panelMessages'); container.innerHTML = '';
+    $('#findingsContent').innerHTML = '<p style="color:var(--ink-muted)">Demo starting...</p>';
 
-    const wb = state.workbook;
-    const sheetName = wb.SheetNames[state.selectedSheet];
-    const sheet = wb.Sheets[sheetName];
-    const format = document.querySelector('input[name="format"]:checked').value;
+    const marco = TC.people.marco;
+    const lena = TC.people.lena;
 
-    let output = '';
-    let mimeType = '';
-    let fileExt = '';
+    // Step 1: Marco asks a question
+    setTimeout(() => {
+      const q = 'What is the correct flat file specification for submitting multi-country travel reimbursement data?';
+      $('#askInput').value = q;
+      submitQuestion(q);
+    }, 1000);
 
-    if (format === 'csv') {
-      output = XLSX.utils.sheet_to_csv(sheet);
-      mimeType = 'text/csv;charset=utf-8;';
-      fileExt = '.csv';
-    } else {
-      output = XLSX.utils.sheet_to_csv(sheet, { FS: '\t' });
-      mimeType = 'text/plain;charset=utf-8;';
-      fileExt = '.txt';
-    }
+    // Step 2: Marco reviews findings, sends to team
+    setTimeout(() => {
+      addPanelMessage('team', marco, 'I just asked the AI SME about the flat file spec for multi-country travel reimbursement. Let me know if anyone has dealt with this format before.');
+    }, 4000);
 
-    // Download
-    const blob = new Blob([output], { type: mimeType });
+    // Step 3: Lena responds referencing statutory wiki
+    setTimeout(() => {
+      addPanelMessage('team', lena, 'I remember there is a statutory requirement for Germany that affects the per-diem columns. Let me check @statutory Germany per-diem for the exact spec.');
+    }, 6500);
+
+    // Step 4: AI responds with statutory reference
+    setTimeout(() => {
+      const germanyItem = SW.find(s => s.country === 'Germany');
+      const response = `[Germany] ${germanyItem.title}: ${germanyItem.content}\n\nThe flat file template requires columns: EmployeeID, TravelDate, DestinationCountry, DaysAbsent, FullDayRate, PartialDayRate, TotalReimbursement.`;
+      addPanelMessage('ai', 'IntelliHub AI', response, null, '<a class="chat-download-link" id="demoTemplateLink">&#x1F4E5; Download Template (CSV)</a>');
+      updateFindings('Statutory reference found: Germany per-diem rates apply. Flat file template identified with required columns.');
+      // Wire download
+      setTimeout(() => {
+        const dl = document.getElementById('demoTemplateLink');
+        if (dl) dl.addEventListener('click', () => downloadTemplate());
+      }, 100);
+    }, 9000);
+
+    // Step 5: Marco asks @statutory for specific figures
+    setTimeout(() => {
+      addPanelMessage('team', marco, '@statutory I just need these 3 figures plugged in: EMP-4021 traveled to Germany 2025-03-10 for 5 days at full-day rate 28.00 EUR partial 14.00 EUR totaling 126.00 EUR; EMP-7833 traveled to France 2025-03-12 for 3 days at 25.50 EUR partial 12.75 EUR totaling 63.75 EUR; EMP-1190 traveled to Japan 2025-03-15 for 4 days at 35.00 EUR partial 17.50 EUR totaling 122.50 EUR.');
+    }, 12000);
+
+    // Step 6: @statutory replies with populated flat file
+    setTimeout(() => {
+      const figures = [
+        ['EMP-4021','2025-03-10','Germany','5','28.00','14.00','126.00'],
+        ['EMP-7833','2025-03-12','France','3','25.50','12.75','63.75'],
+        ['EMP-1190','2025-03-15','Japan','4','35.00','17.50','122.50']
+      ];
+      const csv = generateFlatFileCSV(figures);
+      const response = 'Here is your populated flat file with the 3 records:\n\n' + csv;
+      addPanelMessage('ai', 'IntelliHub AI', response, null, '<a class="chat-download-link" id="demoFlatFileLink">&#x1F4E5; Download Populated Flat File (CSV)</a>');
+      updateFindings('Flat file generated with 3 employee travel records for Germany, France, and Japan.');
+      setTimeout(() => {
+        const dl = document.getElementById('demoFlatFileLink');
+        if (dl) dl.addEventListener('click', () => {
+          const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a'); a.href = url; a.download = 'travel_reimbursement_data.csv';
+          document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+        });
+      }, 100);
+    }, 15000);
+  }
+
+  function downloadTemplate() {
+    const template = 'EmployeeID,TravelDate,DestinationCountry,DaysAbsent,FullDayRate,PartialDayRate,TotalReimbursement\n,,,,,,\n,,,,,,\n,,,,,,';
+    const blob = new Blob([template], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = state.fileName.replace(/\.(xlsx|xls)$/i, '') + fileExt;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    const a = document.createElement('a'); a.href = url; a.download = 'travel_reimbursement_template.csv';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
   }
 
-  function resetConverter() {
-    state.workbook = null;
-    state.fileName = '';
-    state.selectedSheet = 0;
-    state.sheetData = null;
-
-    $('#uploadZone').hidden = false;
-    $('#filePreview').hidden = true;
-    $('#aiReview').hidden = true;
-    $('#previewTableWrap').hidden = true;
-    $('#sheetSelector').hidden = true;
-    $('#fileInput').value = '';
-  }
-
-  /* ---- Knowledge Vault ---- */
-  function initKnowledgeBase() {
-    const pendingGrid = $('#pendingGrid');
-    const validatedGrid = $('#validatedGrid');
-    if (!pendingGrid || !validatedGrid) return;
-
-    const allItems = [...KB.policies, ...KB.playbooks, ...KB.precedents, ...KB.wiki];
-
-    let pendingCount = 0;
-    let validatedCount = 0;
-
-    allItems.forEach(item => {
-      const card = document.createElement('div');
-      card.className = 'kb-card';
-
-      const typeLabel = {
-        policy: 'Approved Policy',
-        playbook: 'Validated Playbook',
-        precedent: 'CRM Precedent',
-        wiki: 'Internal Wiki'
-      }[item.type];
-
-      const statusText = item.status || item.outcome || '';
-      const isPending = statusText.toLowerCase().includes('pending') || statusText.toLowerCase().includes('under review');
-
-      card.innerHTML = `
-        <div class="kb-card-header">
-          <span class="kb-type-tag ${item.type}">${esc(typeLabel)}</span>
-          ${statusText ? `<span class="kb-status">${esc(statusText)}</span>` : ''}
-        </div>
-        <h3>${esc(item.title)}</h3>
-        <p>${esc(item.content.substring(0, 160))}${item.content.length > 160 ? '...' : ''}</p>
-        <div class="kb-card-footer">
-          ${item.id} ${item.region ? '· ' + item.region : ''} ${item.lastUpdated ? '· Updated ' + item.lastUpdated : ''}
-        </div>`;
-
-      if (isPending) {
-        pendingGrid.appendChild(card);
-        pendingCount++;
-      } else {
-        validatedGrid.appendChild(card);
-        validatedCount++;
-      }
-    });
-
-    // Update counts
-    const pendingCountEl = $('#pendingCount');
-    const validatedCountEl = $('#validatedCount');
-    if (pendingCountEl) pendingCountEl.textContent = pendingCount;
-    if (validatedCountEl) validatedCountEl.textContent = validatedCount;
-
-    // Show empty state if no pending
-    const pendingEmpty = $('#pendingEmpty');
-    if (pendingCount === 0 && pendingEmpty) pendingEmpty.hidden = false;
-  }
-
-  /* ---- Team Chat (main view) ---- */
+  /* ---- Team Chat Section ---- */
   function initTeamChat() {
     const feed = $('#teamChatFeed');
     if (!feed) return;
     const TC = window.TEAM_CONVERSATION;
     if (!TC) return;
-
-    // Composer
     const sendBtn = $('#teamChatSend');
     const input = $('#teamChatInput');
     if (sendBtn && input) {
       const postMessage = () => {
-        const text = input.value.trim();
-        if (!text) return;
-
-        const el = document.createElement('div');
-        el.className = 'chat-message user';
-        el.style.marginLeft = '0';
-        el.innerHTML = `
-          <div class="chat-sender">You · Team Member</div>
-          <div class="chat-body"><p>${esc(text)}</p></div>
-          <div class="panel-msg-actions">
-            <button class="approve-btn" data-type="confirmed">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-              Confirm as Approved Practice
-            </button>
-          </div>`;
-
-        feed.insertBefore(el, feed.firstChild);
-        input.value = '';
-
-        // Wire approve button on new message
-        el.querySelector('.approve-btn').addEventListener('click', function() {
-          const entry = {
-            id: 'ARCH-' + String(state.archivedPractices.length + 1).padStart(3, '0'),
-            type: 'playbook',
-            title: 'Confirmed practice from team discussion',
-            content: text,
-            tags: ['team-confirmed', 'conversation-sourced'],
-            status: 'Validated — Team Confirmed',
-            lastUpdated: new Date().toISOString().split('T')[0],
-          };
-          state.archivedPractices.push(entry);
-          KB.playbooks.push(entry);
-          this.disabled = true;
-          this.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Archived to Knowledge Vault`;
-          this.classList.add('approved');
-        });
+        const text = input.value.trim(); if (!text) return;
+        const el = document.createElement('div'); el.className = 'chat-message user'; el.style.marginLeft = '0';
+        el.innerHTML = `<div class="chat-sender">You · Team Member</div><div class="chat-body"><p>${esc(text)}</p></div>`;
+        feed.insertBefore(el, feed.firstChild); input.value = '';
       };
-
       sendBtn.addEventListener('click', postMessage);
-      input.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-          e.preventDefault();
-          postMessage();
-        }
-      });
+      input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); postMessage(); } });
     }
-
-    TC.messages.forEach((msg, idx) => {
-      const person = TC.people[msg.person];
-      const el = document.createElement('div');
-
+    // Load initial messages (newest first)
+    TC.messages.slice().reverse().forEach(msg => {
+      const person = TC.people[msg.person]; const el = document.createElement('div');
       if (msg.isRecommendation) {
         el.className = 'chat-message ai';
-        el.innerHTML = `
-          <div class="chat-sender">${esc(person.name)} · AI Companion</div>
-          <div class="chat-body">
-            <p><strong>${esc(msg.title)}</strong></p>
-            <p>${esc(msg.body)}</p>
-            <p><strong>Recommended next step:</strong> ${esc(msg.nextStep)}</p>
-          </div>
-          <div class="chat-citations">
-            <div class="citation-label">Sources referenced · Confidence: ${Math.round(msg.confidence * 100)}%</div>
-            <div class="citation-list">
-              ${msg.citations.map(c => `<span class="citation-tag playbook">${esc(c)}</span>`).join('')}
-            </div>
-          </div>
-          <div class="panel-msg-actions">
-            <button class="approve-btn" data-chat-idx="${idx}" data-type="best-practice">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-              Approve as Best Practice
-            </button>
-          </div>`;
+        el.innerHTML = `<div class="chat-sender">${esc(person.name)} · AI</div><div class="chat-body"><p><strong>${esc(msg.title)}</strong></p><p>${esc(msg.body)}</p></div>`;
       } else {
-        el.className = 'chat-message user';
-        el.style.marginLeft = '0';
-        el.innerHTML = `
-          <div class="chat-sender">${esc(person.name)} · ${esc(person.role)} · ${esc(person.region)}</div>
-          <div class="chat-body"><p>${esc(msg.body)}</p></div>
-          <div class="panel-msg-actions">
-            <button class="approve-btn" data-chat-idx="${idx}" data-type="confirmed">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-              Confirm as Approved Practice
-            </button>
-          </div>`;
+        el.className = 'chat-message user'; el.style.marginLeft = '0';
+        el.innerHTML = `<div class="chat-sender">${esc(person.name)} · ${esc(person.role)}</div><div class="chat-body"><p>${esc(msg.body)}</p></div>`;
       }
-
       feed.appendChild(el);
-    });
-
-    // Wire approve buttons
-    feed.querySelectorAll('.approve-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const idx = parseInt(btn.dataset.chatIdx);
-        const msg = TC.messages[idx];
-        const person = TC.people[msg.person];
-
-        const entry = {
-          id: 'ARCH-' + String(state.archivedPractices.length + 1).padStart(3, '0'),
-          type: 'playbook',
-          title: msg.isRecommendation ? msg.title : `Confirmed practice from ${person.name}`,
-          content: msg.isRecommendation ? `${msg.body} Next step: ${msg.nextStep}` : msg.body,
-          tags: ['team-confirmed', 'conversation-sourced'],
-          status: 'Validated — Team Confirmed',
-          lastUpdated: new Date().toISOString().split('T')[0],
-        };
-
-        state.archivedPractices.push(entry);
-        KB.playbooks.push(entry);
-
-        btn.disabled = true;
-        btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Archived to Knowledge Vault`;
-        btn.classList.add('approved');
-      });
     });
   }
 
-  /* ---- Capture Confirmed Practice ---- */
-  function initCapture() {
-    const btn = $('#captureBtn');
-    if (!btn) return;
-
-    btn.addEventListener('click', () => {
-      const title = $('#captureTitle').value.trim();
-      const summary = $('#captureSummary').value.trim();
-      const keywords = $('#captureKeywords').value.trim();
-      const type = document.querySelector('input[name="captureType"]:checked').value;
-
-      if (!title || !summary) {
-        alert('Please provide both a title and resolution summary.');
-        return;
+  /* ---- Team Panel (right side initial load) ---- */
+  function initTeamPanel() {
+    const TC = window.TEAM_CONVERSATION;
+    if (!TC) return;
+    const container = $('#panelMessages');
+    if (!container) return;
+    TC.messages.slice().reverse().forEach(msg => {
+      const person = TC.people[msg.person]; const el = document.createElement('div');
+      if (msg.isRecommendation) {
+        el.className = 'panel-msg panel-msg-ai';
+        el.innerHTML = `<div class="panel-msg-head"><span class="panel-av" style="background:${person.color}">${esc(person.initials)}</span><span class="panel-name">${esc(person.name)}</span><span class="panel-badge">AI</span><span class="panel-time">${esc(msg.time)}</span></div><div class="panel-rec"><div class="panel-rec-title">${esc(msg.title)}</div><div class="panel-rec-body">${esc(msg.body)}</div></div>`;
+      } else {
+        el.className = 'panel-msg';
+        el.innerHTML = `<div class="panel-msg-head"><span class="panel-av" style="background:${person.color}">${esc(person.initials)}</span><span class="panel-name">${esc(person.name)}</span><span class="panel-role">${esc(person.role)}</span><span class="panel-time">${esc(msg.time)}</span></div><div class="panel-msg-body">${esc(msg.body)}</div>`;
       }
+      container.appendChild(el);
+    });
+  }
 
-      // Archive to state (in a real app this would persist)
-      const entry = {
-        id: 'ARCH-' + String(state.archivedPractices.length + 1).padStart(3, '0'),
-        type: type === 'best-practice' ? 'playbook' : 'precedent',
-        title: title,
-        content: summary,
-        tags: keywords.split(',').map(k => k.trim()).filter(Boolean),
-        status: type === 'best-practice' ? 'Validated' : 'Workaround',
-        lastUpdated: new Date().toISOString().split('T')[0],
-      };
+  /* ---- File Converter ---- */
+  function initConverter() {
+    const zone = $('#uploadZone'); const fileInput = $('#fileInput'); const removeBtn = $('#fileRemove'); const convertBtn = $('#convertBtn'); const sheetSelect = $('#sheetSelect');
+    if (!zone) return;
+    zone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', (e) => { if (e.target.files.length > 0) handleFile(e.target.files[0]); });
+    zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.classList.add('drag-over'); });
+    zone.addEventListener('dragleave', () => { zone.classList.remove('drag-over'); });
+    zone.addEventListener('drop', (e) => { e.preventDefault(); zone.classList.remove('drag-over'); if (e.dataTransfer.files.length > 0) handleFile(e.dataTransfer.files[0]); });
+    removeBtn.addEventListener('click', resetConverter);
+    convertBtn.addEventListener('click', convertFile);
+    sheetSelect.addEventListener('change', () => { state.selectedSheet = parseInt(sheetSelect.value); renderPreview(); });
+  }
+  function handleFile(file) {
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (!['xlsx','xls'].includes(ext)) { alert('Please upload an Excel file (.xlsx or .xls)'); return; }
+    state.fileName = file.name;
+    const reader = new FileReader();
+    reader.onload = (e) => { try { state.workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' }); state.selectedSheet = 0; showFilePreview(); } catch(err) { alert('Error reading file.'); } };
+    reader.readAsArrayBuffer(file);
+  }
+  function showFilePreview() {
+    const wb = state.workbook; const sheets = wb.SheetNames;
+    $('#uploadZone').hidden = true; $('#filePreview').hidden = false;
+    $('#fileName').textContent = state.fileName; $('#fileMeta').textContent = `${sheets.length} sheet(s)`;
+    if (sheets.length > 1) { const sel = $('#sheetSelect'); sel.innerHTML = ''; sheets.forEach((n,i) => { const o = document.createElement('option'); o.value = i; o.textContent = n; sel.appendChild(o); }); $('#sheetSelector').hidden = false; } else { $('#sheetSelector').hidden = true; }
+    renderPreview(); showAiReview();
+  }
+  function renderPreview() {
+    const sheet = state.workbook.Sheets[state.workbook.SheetNames[state.selectedSheet]];
+    const json = XLSX.utils.sheet_to_json(sheet, { header: 1 }); state.sheetData = json;
+    if (!json.length) { $('#previewTableWrap').hidden = true; return; }
+    $('#previewTableWrap').hidden = false;
+    let html = '<thead><tr>' + (json[0]||[]).map(c => `<th>${esc(String(c||''))}</th>`).join('') + '</tr></thead><tbody>';
+    json.slice(1,6).forEach(row => { html += '<tr>'; for (let i=0;i<(json[0]?json[0].length:row.length);i++) html += `<td>${esc(String(row[i]!=null?row[i]:''))}</td>`; html += '</tr>'; });
+    html += '</tbody>'; $('#previewTable').innerHTML = html;
+  }
+  function showAiReview() {
+    const sheet = state.workbook.Sheets[state.workbook.SheetNames[state.selectedSheet]];
+    const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+    const cols = json[0] ? json[0].length : 0;
+    $('#aiReview').hidden = false;
+    $('#aiReviewBody').innerHTML = `<strong>Structure:</strong> ${json.length} rows, ${cols} columns.<br><strong>Ready:</strong> File is valid for conversion.`;
+  }
+  function convertFile() {
+    if (!state.workbook) return;
+    const sheet = state.workbook.Sheets[state.workbook.SheetNames[state.selectedSheet]];
+    const format = document.querySelector('input[name="format"]:checked').value;
+    let output, mime, ext;
+    if (format === 'csv') { output = XLSX.utils.sheet_to_csv(sheet); mime = 'text/csv;charset=utf-8;'; ext = '.csv'; }
+    else { output = XLSX.utils.sheet_to_csv(sheet, { FS: '\t' }); mime = 'text/plain;charset=utf-8;'; ext = '.txt'; }
+    const blob = new Blob([output], { type: mime }); const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = state.fileName.replace(/\.(xlsx|xls)$/i,'') + ext;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+  }
+  function resetConverter() {
+    state.workbook = null; state.fileName = ''; state.selectedSheet = 0; state.sheetData = null;
+    $('#uploadZone').hidden = false; $('#filePreview').hidden = true; $('#aiReview').hidden = true; $('#previewTableWrap').hidden = true; $('#sheetSelector').hidden = true; $('#fileInput').value = '';
+  }
 
-      state.archivedPractices.push(entry);
-      KB.playbooks.push(entry);
+  /* ---- Knowledge Vault ---- */
+  function initKnowledgeBase() {
+    const pendingGrid = $('#pendingGrid'); const validatedGrid = $('#validatedGrid');
+    if (!pendingGrid || !validatedGrid) return;
+    const allItems = [...KB.policies, ...KB.playbooks, ...KB.precedents, ...KB.wiki];
+    let pc = 0, vc = 0;
+    allItems.forEach(item => {
+      const card = document.createElement('div'); card.className = 'kb-card';
+      const typeLabel = { policy:'Approved Policy', playbook:'Validated Playbook', precedent:'CRM Precedent', wiki:'Internal Wiki' }[item.type];
+      const statusText = item.status || item.outcome || '';
+      const isPending = statusText.toLowerCase().includes('pending') || statusText.toLowerCase().includes('under review');
+      card.innerHTML = `<div class="kb-card-header"><span class="kb-type-tag ${item.type}">${esc(typeLabel)}</span>${statusText ? `<span class="kb-status">${esc(statusText)}</span>` : ''}</div><h3>${esc(item.title)}</h3><p>${esc(item.content.substring(0,160))}${item.content.length>160?'...':''}</p><div class="kb-card-footer">${item.id} ${item.region?'· '+item.region:''} ${item.lastUpdated?'· Updated '+item.lastUpdated:''}</div>`;
+      if (isPending) { pendingGrid.appendChild(card); pc++; } else { validatedGrid.appendChild(card); vc++; }
+    });
+    const pce = $('#pendingCount'); if (pce) pce.textContent = pc;
+    const vce = $('#validatedCount'); if (vce) vce.textContent = vc;
+    if (pc === 0) { const e = $('#pendingEmpty'); if (e) e.hidden = false; }
+  }
 
-      // Show success, reset form
-      $('#captureForm').hidden = true;
-      $('#captureSuccess').hidden = false;
-
-      setTimeout(() => {
-        $('#captureForm').hidden = false;
-        $('#captureSuccess').hidden = true;
-        $('#captureTitle').value = '';
-        $('#captureSummary').value = '';
-        $('#captureKeywords').value = '';
-      }, 3000);
+  /* ---- Capture (Knowledge Core) ---- */
+  function initCapture() {
+    const btn = $('#captureBtn'); if (!btn) return;
+    btn.addEventListener('click', () => {
+      const title = $('#captureTitle').value.trim(); const summary = $('#captureSummary').value.trim();
+      if (!title || !summary) { alert('Please provide both a title and summary.'); return; }
+      const keywords = $('#captureKeywords').value.trim();
+      KB.playbooks.push({ id: 'ARCH-' + String(state.archivedPractices.length+1).padStart(3,'0'), type: 'playbook', title, content: summary, tags: keywords.split(',').map(k=>k.trim()).filter(Boolean), status: 'Validated', lastUpdated: new Date().toISOString().split('T')[0] });
+      state.archivedPractices.push(title);
+      $('#captureForm').hidden = true; $('#captureSuccess').hidden = false;
+      setTimeout(() => { $('#captureForm').hidden = false; $('#captureSuccess').hidden = true; $('#captureTitle').value = ''; $('#captureSummary').value = ''; $('#captureKeywords').value = ''; }, 3000);
     });
   }
 
   /* ---- Statutory Wiki ---- */
   function initStatutoryWiki() {
-    const grid = $('#statutoryGrid');
-    if (!grid) return;
-    const items = window.STATUTORY_WIKI || [];
-
-    items.forEach(item => {
-      const card = document.createElement('div');
-      card.className = 'kb-card statutory-card';
-
-      card.innerHTML = `
-        <div class="kb-card-header">
-          <span class="kb-type-tag statutory">${esc(item.country)}</span>
-          <span class="kb-status">${esc(item.status)}</span>
-        </div>
-        <h3>${esc(item.title)}</h3>
-        <p>${esc(item.content.substring(0, 180))}${item.content.length > 180 ? '...' : ''}</p>
-        <div class="kb-card-footer">
-          ${esc(item.id)} · ${esc(item.category)} · Updated ${esc(item.lastUpdated)}
-        </div>`;
-
+    const grid = $('#statutoryGrid'); if (!grid) return;
+    (window.STATUTORY_WIKI || []).forEach(item => {
+      const card = document.createElement('div'); card.className = 'kb-card statutory-card';
+      card.innerHTML = `<div class="kb-card-header"><span class="kb-type-tag statutory">${esc(item.country)}</span><span class="kb-status">${esc(item.status)}</span></div><h3>${esc(item.title)}</h3><p>${esc(item.content.substring(0,180))}${item.content.length>180?'...':''}</p><div class="kb-card-footer">${esc(item.id)} · ${esc(item.category)} · Updated ${esc(item.lastUpdated)}</div>`;
       grid.appendChild(card);
     });
   }
 
-  /* ---- Team Conversation Panel ---- */
-  /* ---- Right Panel: Live Discussion ---- */
-  function addPanelMessage(type, sender, text, citations) {
-    const container = $('#panelMessages');
-    const msg = document.createElement('div');
-    msg.className = `panel-msg ${type === 'ai' ? 'panel-msg-ai' : ''}`;
-
-    // Process @statutory mentions for display
-    const displayText = text.replace(/@statutory/gi, '<span class="mention">@statutory</span>');
-
-    if (type === 'ai') {
-      msg.innerHTML = `
-        <div class="panel-msg-head">
-          <span class="panel-av" style="background:#1a73e8">AI</span>
-          <span class="panel-name">${esc(sender)}</span>
-          <span class="panel-badge">AI</span>
-          <span class="panel-time">${new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
-        </div>
-        <div class="panel-msg-body">${displayText.substring(0, 300)}${text.length > 300 ? '...' : ''}</div>
-        ${citations && citations.length > 0 ? `<div class="panel-rec-meta"><span class="panel-cite">${citations.length} sources cited</span></div>` : ''}`;
-    } else if (type === 'team') {
-      msg.innerHTML = `
-        <div class="panel-msg-head">
-          <span class="panel-av" style="background:${sender.color}">${esc(sender.initials)}</span>
-          <span class="panel-name">${esc(sender.name)}</span>
-          <span class="panel-role">${esc(sender.role)}</span>
-          <span class="panel-time">${new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
-        </div>
-        <div class="panel-msg-body">${displayText}</div>`;
-    } else {
-      msg.innerHTML = `
-        <div class="panel-msg-head">
-          <span class="panel-av" style="background:#3572a5">Y</span>
-          <span class="panel-name">${esc(sender)}</span>
-          <span class="panel-time">${new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
-        </div>
-        <div class="panel-msg-body">${displayText}</div>`;
-    }
-
-    container.appendChild(msg);
-    container.scrollTop = container.scrollHeight;
-  }
-
-  function handleStatutoryMention(text) {
-    // Extract query after @statutory
-    const match = text.match(/@statutory\s+(.+)/i);
-    if (!match) return null;
-
-    const query = match[1].trim().toLowerCase();
-    const items = window.STATUTORY_WIKI || [];
-    const found = items.filter(item =>
-      item.title.toLowerCase().includes(query) ||
-      item.content.toLowerCase().includes(query) ||
-      item.country.toLowerCase().includes(query) ||
-      item.category.toLowerCase().includes(query)
-    );
-
-    if (found.length === 0) {
-      return `I searched the Statutory Wiki for "${match[1].trim()}" but found no matching entries. Try using country names, categories like "Travel & Expense", or specific terms like "per-diem" or "overtime".`;
-    }
-
-    let response = `Found ${found.length} statutory reference${found.length > 1 ? 's' : ''} for "${match[1].trim()}":\n\n`;
-    found.slice(0, 3).forEach(item => {
-      response += `[${item.country}] ${item.title}: ${item.content.substring(0, 150)}...\n\n`;
-    });
-    return response;
-  }
-
-  function simulateTeamResponse(userText) {
-    const TC = window.TEAM_CONVERSATION;
-    if (!TC) return;
-
-    // Simulate a random team member responding after a delay
-    const teamMembers = ['marco', 'lena', 'rajesh', 'jason'];
-    const randomMember = teamMembers[Math.floor(Math.random() * teamMembers.length)];
-    const person = TC.people[randomMember];
-
-    const responses = [
-      "Good question. I've seen something similar in a recent case — let me check.",
-      "I'd recommend checking the configuration hierarchy first. Rule precedence can cause unexpected behavior.",
-      "This aligns with what we resolved in CRM-107. The evaluation sequence was the root cause.",
-      "Let me pull up the playbook on this. We documented a similar pattern last quarter.",
-      "Interesting — I think this might be related to the interval definition conflicts we saw in APAC.",
-    ];
-
-    const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-
-    setTimeout(() => {
-      addPanelMessage('team', person, randomResponse);
-    }, 2000 + Math.random() * 2000);
-  }
-
-  function initTeamPanel() {
-    const TC = window.TEAM_CONVERSATION;
-    if (!TC) return;
-
-    const container = $('#panelMessages');
-    if (!container) return;
-
-    // Load initial conversation messages
-    TC.messages.forEach((msg, idx) => {
-      const person = TC.people[msg.person];
-      const el = document.createElement('div');
-
-      if (msg.isRecommendation) {
-        el.className = 'panel-msg panel-msg-ai';
-        el.innerHTML = `
-          <div class="panel-msg-head">
-            <span class="panel-av" style="background:${person.color}">${esc(person.initials)}</span>
-            <span class="panel-name">${esc(person.name)}</span>
-            <span class="panel-badge">AI</span>
-            <span class="panel-time">${esc(msg.time)}</span>
-          </div>
-          <div class="panel-rec">
-            <div class="panel-rec-title">${esc(msg.title)}</div>
-            <div class="panel-rec-body">${esc(msg.body)}</div>
-            <div class="panel-rec-step"><strong>Next step:</strong> ${esc(msg.nextStep)}</div>
-            <div class="panel-rec-meta">
-              <span class="panel-conf">Confidence: ${Math.round(msg.confidence * 100)}%</span>
-              <span class="panel-cite">${msg.citations.length} sources cited</span>
-            </div>
-          </div>`;
-      } else {
-        el.className = 'panel-msg';
-        el.innerHTML = `
-          <div class="panel-msg-head">
-            <span class="panel-av" style="background:${person.color}">${esc(person.initials)}</span>
-            <span class="panel-name">${esc(person.name)}</span>
-            <span class="panel-role">${esc(person.role)}</span>
-            <span class="panel-time">${esc(msg.time)}</span>
-          </div>
-          <div class="panel-msg-body">${esc(msg.body)}</div>`;
-      }
-
-      container.appendChild(el);
-    });
-
-    // Panel composer — live chat with @statutory support
-    const sendBtn = $('#panelChatSend');
-    const chatInput = $('#panelChatInput');
-
-    if (sendBtn && chatInput) {
-      const sendMessage = () => {
-        const text = chatInput.value.trim();
-        if (!text) return;
-
-        // Post user message
-        addPanelMessage('user', 'You', text);
-        chatInput.value = '';
-
-        // Check for @statutory mention
-        if (text.toLowerCase().includes('@statutory')) {
-          const statutoryResponse = handleStatutoryMention(text);
-          if (statutoryResponse) {
-            setTimeout(() => {
-              addPanelMessage('ai', 'IntelliHub AI', statutoryResponse);
-            }, 800 + Math.random() * 600);
-          }
-        } else {
-          // Simulate team member response for collaborative feel
-          simulateTeamResponse(text);
-        }
-      };
-
-      sendBtn.addEventListener('click', sendMessage);
-      chatInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-          e.preventDefault();
-          sendMessage();
-        }
-      });
-    }
-
-    // Scroll to bottom
-    container.scrollTop = container.scrollHeight;
-  }
-
-  /* ---- Initialize ---- */
-  function init() {
-    initNav();
-    initTeamChat();
-    initAsk();
-    initCapture();
-    initConverter();
-    initKnowledgeBase();
-    initStatutoryWiki();
-    initTeamPanel();
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
+  /* ---- Init ---- */
+  function init() { initNav(); initAsk(); initPanelChat(); initResolved(); initDemo(); initTeamChat(); initTeamPanel(); initConverter(); initKnowledgeBase(); initCapture(); initStatutoryWiki(); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
