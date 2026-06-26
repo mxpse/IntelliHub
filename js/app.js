@@ -11,6 +11,7 @@
     fileName: '',
     selectedSheet: 0,
     sheetData: null,
+    archivedPractices: [],
   };
 
   /* ---- Helpers ---- */
@@ -466,6 +467,75 @@
     });
   }
 
+  /* ---- Capture Confirmed Practice ---- */
+  function initCapture() {
+    const btn = $('#captureBtn');
+    if (!btn) return;
+
+    btn.addEventListener('click', () => {
+      const title = $('#captureTitle').value.trim();
+      const summary = $('#captureSummary').value.trim();
+      const keywords = $('#captureKeywords').value.trim();
+      const type = document.querySelector('input[name="captureType"]:checked').value;
+
+      if (!title || !summary) {
+        alert('Please provide both a title and resolution summary.');
+        return;
+      }
+
+      // Archive to state (in a real app this would persist)
+      const entry = {
+        id: 'ARCH-' + String(state.archivedPractices.length + 1).padStart(3, '0'),
+        type: type === 'best-practice' ? 'playbook' : 'precedent',
+        title: title,
+        content: summary,
+        tags: keywords.split(',').map(k => k.trim()).filter(Boolean),
+        status: type === 'best-practice' ? 'Validated' : 'Workaround',
+        lastUpdated: new Date().toISOString().split('T')[0],
+      };
+
+      state.archivedPractices.push(entry);
+      KB.playbooks.push(entry);
+
+      // Show success, reset form
+      $('#captureForm').hidden = true;
+      $('#captureSuccess').hidden = false;
+
+      setTimeout(() => {
+        $('#captureForm').hidden = false;
+        $('#captureSuccess').hidden = true;
+        $('#captureTitle').value = '';
+        $('#captureSummary').value = '';
+        $('#captureKeywords').value = '';
+      }, 3000);
+    });
+  }
+
+  /* ---- Statutory Wiki ---- */
+  function initStatutoryWiki() {
+    const grid = $('#statutoryGrid');
+    if (!grid) return;
+    const items = window.STATUTORY_WIKI || [];
+
+    items.forEach(item => {
+      const card = document.createElement('div');
+      card.className = 'kb-card statutory-card';
+
+      card.innerHTML = `
+        <div class="kb-card-header">
+          <span class="kb-type-tag statutory">${esc(item.country)}</span>
+          <span class="kb-status">${esc(item.status)}</span>
+        </div>
+        <h3>${esc(item.title)}</h3>
+        <p>${esc(item.content.substring(0, 180))}${item.content.length > 180 ? '...' : ''}</p>
+        <div class="kb-card-footer">
+          ${esc(item.id)} · ${esc(item.category)} · Updated ${esc(item.lastUpdated)}
+        </div>`;
+
+      grid.appendChild(card);
+    });
+  }
+
   /* ---- Team Conversation Panel ---- */
   function initTeamPanel() {
     const TC = window.TEAM_CONVERSATION;
@@ -474,7 +544,7 @@
     const container = $('#panelMessages');
     if (!container) return;
 
-    TC.messages.forEach(msg => {
+    TC.messages.forEach((msg, idx) => {
       const person = TC.people[msg.person];
       const el = document.createElement('div');
 
@@ -495,6 +565,12 @@
               <span class="panel-conf">Confidence: ${Math.round(msg.confidence * 100)}%</span>
               <span class="panel-cite">${msg.citations.length} sources cited</span>
             </div>
+          </div>
+          <div class="panel-msg-actions">
+            <button class="approve-btn" data-idx="${idx}" data-type="best-practice">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+              Approve as Best Practice
+            </button>
           </div>`;
       } else {
         el.className = 'panel-msg';
@@ -505,10 +581,44 @@
             <span class="panel-role">${esc(person.role)}</span>
             <span class="panel-time">${esc(msg.time)}</span>
           </div>
-          <div class="panel-msg-body">${esc(msg.body)}</div>`;
+          <div class="panel-msg-body">${esc(msg.body)}</div>
+          <div class="panel-msg-actions">
+            <button class="approve-btn" data-idx="${idx}" data-type="confirmed">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+              Confirm as Approved Practice
+            </button>
+          </div>`;
       }
 
       container.appendChild(el);
+    });
+
+    // Wire up approve buttons
+    container.querySelectorAll('.approve-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const idx = parseInt(btn.dataset.idx);
+        const msg = TC.messages[idx];
+        const person = TC.people[msg.person];
+
+        // Archive the message content
+        const entry = {
+          id: 'ARCH-' + String(state.archivedPractices.length + 1).padStart(3, '0'),
+          type: 'playbook',
+          title: msg.isRecommendation ? msg.title : `Confirmed practice from ${person.name}`,
+          content: msg.isRecommendation ? `${msg.body} Next step: ${msg.nextStep}` : msg.body,
+          tags: ['team-confirmed', 'conversation-sourced'],
+          status: 'Validated — Team Confirmed',
+          lastUpdated: new Date().toISOString().split('T')[0],
+        };
+
+        state.archivedPractices.push(entry);
+        KB.playbooks.push(entry);
+
+        // Visual feedback
+        btn.disabled = true;
+        btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Archived to Knowledge Base`;
+        btn.classList.add('approved');
+      });
     });
   }
 
@@ -516,8 +626,10 @@
   function init() {
     initNav();
     initAsk();
+    initCapture();
     initConverter();
     initKnowledgeBase();
+    initStatutoryWiki();
     initTeamPanel();
   }
 

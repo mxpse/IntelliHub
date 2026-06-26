@@ -190,6 +190,64 @@ const KNOWLEDGE_BASE = {
   ]
 };
 
+/* ---- Statutory Wiki ---- */
+const STATUTORY_WIKI = [
+  {
+    id: "STAT-001",
+    country: "Germany",
+    title: "Travel Per-Diem Statutory Rates",
+    content: "German statutory per-diem rates are defined by the Federal Ministry of Finance (BMF) and updated annually. Full-day rates apply when the employee is away from home for more than 24 hours. Partial-day rates (departure/return days) apply for absences of more than 8 hours. Rates vary by destination country.",
+    category: "Travel & Expense",
+    lastUpdated: "2025-12-01",
+    status: "Current"
+  },
+  {
+    id: "STAT-002",
+    country: "France",
+    title: "Meal Allowance and Social Security Thresholds",
+    content: "French meal allowances are subject to URSSAF social security thresholds. Amounts below the threshold are exempt from social contributions. Amounts exceeding the threshold are treated as taxable income. The threshold is updated annually by URSSAF and applies regardless of the company's internal policy amounts.",
+    category: "Compensation & Benefits",
+    lastUpdated: "2025-11-15",
+    status: "Current"
+  },
+  {
+    id: "STAT-003",
+    country: "United States",
+    title: "IRS Accountable Plan Rules for Reimbursements",
+    content: "Under IRS accountable plan rules, employee reimbursements must meet three requirements: business connection, substantiation, and return of excess. Reimbursements that fail any requirement are treated as taxable wages. Configuration must ensure that reimbursement types are correctly classified for tax reporting (W-2 vs non-taxable).",
+    category: "Tax & Compliance",
+    lastUpdated: "2025-10-20",
+    status: "Current"
+  },
+  {
+    id: "STAT-004",
+    country: "Brazil",
+    title: "CLT Overtime and Travel Time Classification",
+    content: "Under Brazil's CLT (Consolidation of Labor Laws), travel time may be classified as working time depending on whether the employee is at the employer's disposal. Configuration must distinguish between commute time (not compensable) and travel time to client sites or between work locations (potentially compensable). Recent court rulings have narrowed the definition.",
+    category: "Labor Law",
+    lastUpdated: "2025-09-28",
+    status: "Under Review"
+  },
+  {
+    id: "STAT-005",
+    country: "Japan",
+    title: "Shinkansen and Domestic Travel Allowance Rules",
+    content: "Japanese companies typically provide fixed domestic travel allowances (shutcho teate) which are non-taxable up to a 'reasonable' amount as determined by the National Tax Agency. Configuration must separate the non-taxable allowance from actual expense reimbursements. Green car (first-class) Shinkansen upgrades may be taxable depending on company policy and employee grade.",
+    category: "Travel & Expense",
+    lastUpdated: "2025-11-05",
+    status: "Current"
+  },
+  {
+    id: "STAT-006",
+    country: "India",
+    title: "HRA and Travel LTA Exemption Rules",
+    content: "House Rent Allowance (HRA) exemption under Section 10(13A) depends on city classification (metro vs non-metro), actual rent paid, and basic salary. Leave Travel Allowance (LTA) is exempt for travel within India, limited to two journeys in a block of four years. Configuration must validate these conditions for correct tax computation.",
+    category: "Tax & Compliance",
+    lastUpdated: "2025-10-15",
+    status: "Current"
+  }
+];
+
 /* ---- Team Conversation Thread ---- */
 const TEAM_CONVERSATION = {
   channel: "CRM Resolution — Global Operations",
@@ -242,3 +300,4 @@ const TEAM_CONVERSATION = {
 /* Export for use in app */
 window.KNOWLEDGE_BASE = KNOWLEDGE_BASE;
 window.TEAM_CONVERSATION = TEAM_CONVERSATION;
+window.STATUTORY_WIKI = STATUTORY_WIKI;

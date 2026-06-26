@@ -803,6 +803,176 @@ body {
   color: var(--ink-muted);
 }
 
+/* Capture Confirmed Practice Section */
+.capture-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 18px;
+  margin-bottom: 24px;
+}
+
+.capture-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  color: var(--accent-green);
+}
+
+.capture-header h3 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.capture-desc {
+  font-size: 10px;
+  color: var(--ink-secondary);
+  line-height: 1.6;
+  margin-bottom: 14px;
+}
+
+.capture-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.capture-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.capture-input {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-family: var(--font);
+  font-size: 11px;
+  color: var(--ink);
+  outline: none;
+  transition: border-color var(--transition);
+}
+
+.capture-input:focus {
+  border-color: var(--brand);
+}
+
+.capture-textarea {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-family: var(--font);
+  font-size: 11px;
+  color: var(--ink);
+  outline: none;
+  resize: vertical;
+  transition: border-color var(--transition);
+}
+
+.capture-textarea:focus {
+  border-color: var(--brand);
+}
+
+.capture-radio-group {
+  display: flex;
+  gap: 16px;
+}
+
+.capture-radio {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--ink-secondary);
+  cursor: pointer;
+}
+
+.capture-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 16px;
+  background: var(--accent-green);
+  color: white;
+  border: none;
+  border-radius: var(--radius);
+  font-family: var(--font);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition);
+  align-self: flex-start;
+}
+
+.capture-btn:hover {
+  background: #146a2e;
+}
+
+.capture-success {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  background: var(--accent-green-bg);
+  border-radius: var(--radius);
+  color: var(--accent-green);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+/* Approve buttons in panel */
+.panel-msg-actions {
+  margin-top: 8px;
+}
+
+.approve-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font);
+  font-size: 9px;
+  font-weight: 500;
+  color: var(--accent-green);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.approve-btn:hover {
+  background: var(--accent-green-bg);
+  border-color: var(--accent-green);
+}
+
+.approve-btn.approved {
+  background: var(--accent-green-bg);
+  border-color: var(--accent-green);
+  color: var(--accent-green);
+  cursor: default;
+  opacity: 0.8;
+}
+
+.approve-btn:disabled {
+  cursor: default;
+}
+
+/* Statutory Wiki */
+.statutory-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.statutory-card .kb-type-tag.statutory {
+  background: #f3e5f5;
+  color: #7b1fa2;
+}
+
 /* Team Conversation Panel (right side) */
 .team-panel {
   width: 340px;
