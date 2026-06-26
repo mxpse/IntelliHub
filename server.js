@@ -1,29 +1,29 @@
 #!/usr/bin/env node
 /*
- * IntelliHub — local prototype server
- * ---------------------------------------
- * Two jobs only:
- *   1. Serve the static prototype (index.html, css, js).
- *   2. Expose POST /api/reason, which forwards a governed prompt to Sloan's
- *      intelligence pipeline (POST /api/shortcut/text on the AI portal) and
- *      returns the generated reasoning text.
+ * IntelliHub — Knowledge Portal Server
+ * ----------------------------------------
+ * Serves the static portal and provides API endpoints for:
+ *   1. Static file serving (HTML, CSS, JS)
+ *   2. POST /api/ask — AI Q&A backed by internal knowledge base
+ *   3. Health check at GET /api/status
  *
- * The browser never talks to Sloan directly (avoids CORS and keeps the token
- * server-side). Everything else in the prototype is synthetic.
+ * The Excel conversion is handled entirely client-side via SheetJS.
+ * The AI Q&A can optionally call Sloan for enhanced reasoning,
+ * but falls back to local knowledge matching if unavailable.
  *
- * Config (set in .env next to this file, or as real env vars):
+ * Config (set in .env):
+ *   PORT                default 4173
  *   SLOAN_BASE_URL      default https://aaoellis.com
  *   SLOAN_SHORTCUT_PATH default /api/shortcut/text
- *   SLOAN_TOKEN         the shortcut API token (required to reach Sloan)
- *   SLOAN_TOKEN_HEADER  header name for the token, default X-Shortcut-Token
- *   SLOAN_MESSAGE_KEY   JSON body key for the prompt, default message
- *   PORT                default 4173
+ *   SLOAN_TOKEN         shortcut API token (optional)
+ *   SLOAN_TOKEN_HEADER  header name, default X-Shortcut-Token
+ *   SLOAN_MESSAGE_KEY   JSON body key, default message
  */
 const http = require("http");
 const fs = require("fs");
 const path = require("path");
 
-/* ---- tiny .env loader (no deps) ---- */
+/* ---- .env loader ---- */
 function loadEnv() {
   const p = path.join(__dirname, ".env");
   if (!fs.existsSync(p)) return;
@@ -53,38 +53,21 @@ const MIME = {
   ".json": "application/json; charset=utf-8",
   ".svg": "image/svg+xml",
   ".ico": "image/x-icon",
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".woff2": "font/woff2",
 };
 
-/* ---- build the governed prompt for Sloan ---- */
-function buildPrompt(p) {
-  const lang = p.languageName || (p.language === "fr" ? "French" : "English");
-  const evidence = (p.evidence || []).map((e, i) => `  ${i + 1}. ${e}`).join("\n");
-  return [
-    `You are Amazon Kiro, a governed resolution advisor embedded in a team collaboration channel.`,
-    `A teammate asked: "${p.question}".`,
-    ``,
-    `The approved recommended next step (already governed, do not change it) is:`,
-    `  "${p.recommendedStep}"`,
-    ``,
-    `Supporting evidence (synthetic, for reasoning only):`,
-    evidence || "  (none provided)",
-    ``,
-    `Write a concise 2-3 sentence explanation of WHY this is the right next step,`,
-    `grounded only in the evidence above. Do not invent policy, approval status,`,
-    `case numbers, or statistics. Keep CRM control names (for example`,
-    `"Account Ownership Override", "KB-204") in English exactly as written.`,
-    `Respond in ${lang}. Return only the explanation text, no preamble.`,
-  ].join("\n");
-}
-
-/* ---- call Sloan ---- */
+/* ---- Sloan integration (optional) ---- */
 async function askSloan(prompt) {
-  if (!CFG.token) {
-    return { ok: false, reason: "no_token" };
-  }
+  if (!CFG.token) return { ok: false, reason: "no_token" };
+
   const headers = { "Content-Type": "application/json" };
-  if (CFG.tokenHeader.toLowerCase() === "authorization") headers["Authorization"] = "Bearer " + CFG.token;
-  else headers[CFG.tokenHeader] = CFG.token;
+  if (CFG.tokenHeader.toLowerCase() === "authorization") {
+    headers["Authorization"] = "Bearer " + CFG.token;
+  } else {
+    headers[CFG.tokenHeader] = CFG.token;
+  }
 
   const body = {};
   body[CFG.messageKey] = prompt;
@@ -92,7 +75,8 @@ async function askSloan(prompt) {
   body.voice = false;
 
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 45000);
+  const timer = setTimeout(() => ctrl.abort(), 30000);
+
   try {
     const res = await fetch(CFG.baseUrl + CFG.shortcutPath, {
       method: "POST",
@@ -102,75 +86,119 @@ async function askSloan(prompt) {
     });
     clearTimeout(timer);
     const text = await res.text();
-    if (!res.ok) return { ok: false, reason: "http_" + res.status, detail: text.slice(0, 300) };
+    if (!res.ok) return { ok: false, reason: "http_" + res.status };
+
     let reasoning = "";
     try {
       const j = JSON.parse(text);
       reasoning = j.reply || j.response || j.text || j.message || j.answer || j.result || "";
       if (!reasoning && typeof j === "string") reasoning = j;
     } catch {
-      reasoning = text; // plain-text response
+      reasoning = text;
     }
     reasoning = String(reasoning).trim();
     if (!reasoning) return { ok: false, reason: "empty" };
     return { ok: true, reasoning };
   } catch (err) {
     clearTimeout(timer);
-    return { ok: false, reason: "fetch_error", detail: String(err && err.message || err) };
+    return { ok: false, reason: "fetch_error" };
   }
 }
 
+/* ---- JSON helpers ---- */
 function sendJson(res, code, obj) {
   const s = JSON.stringify(obj);
-  res.writeHead(code, { "Content-Type": "application/json; charset=utf-8" });
+  res.writeHead(code, {
+    "Content-Type": "application/json; charset=utf-8",
+    "Access-Control-Allow-Origin": "*",
+  });
   res.end(s);
 }
 
+/* ---- Static file serving ---- */
 function serveStatic(req, res) {
   let urlPath = decodeURIComponent(req.url.split("?")[0]);
   if (urlPath === "/") urlPath = "/index.html";
+
   const filePath = path.normalize(path.join(__dirname, urlPath));
-  if (!filePath.startsWith(__dirname)) { res.writeHead(403); return res.end("forbidden"); }
+  if (!filePath.startsWith(__dirname)) {
+    res.writeHead(403);
+    return res.end("forbidden");
+  }
+
   fs.readFile(filePath, (err, data) => {
-    if (err) { res.writeHead(404); return res.end("not found"); }
-    res.writeHead(200, { "Content-Type": MIME[path.extname(filePath)] || "application/octet-stream" });
+    if (err) {
+      res.writeHead(404);
+      return res.end("not found");
+    }
+    const ext = path.extname(filePath);
+    res.writeHead(200, {
+      "Content-Type": MIME[ext] || "application/octet-stream",
+      "Cache-Control": "no-cache",
+    });
     res.end(data);
   });
 }
 
+/* ---- Server ---- */
 const server = http.createServer((req, res) => {
-  if (req.method === "POST" && req.url === "/api/reason") {
+  // CORS preflight
+  if (req.method === "OPTIONS") {
+    res.writeHead(204, {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+    });
+    return res.end();
+  }
+
+  // API: Ask endpoint
+  if (req.method === "POST" && req.url === "/api/ask") {
     let raw = "";
     req.on("data", (c) => { raw += c; if (raw.length > 1e6) req.destroy(); });
     req.on("end", async () => {
       let payload = {};
       try { payload = JSON.parse(raw || "{}"); } catch { return sendJson(res, 400, { error: "bad_json" }); }
-      const prompt = buildPrompt(payload);
-      const result = await askSloan(prompt);
-      if (result.ok) return sendJson(res, 200, { source: "sloan", reasoning: result.reasoning });
-      // 502 so the browser falls back to prepared (synthetic) guidance
-      return sendJson(res, 502, { source: "fallback", reason: result.reason, detail: result.detail || "" });
+
+      const question = payload.question || "";
+      if (!question.trim()) return sendJson(res, 400, { error: "no_question" });
+
+      // Try Sloan if configured
+      const prompt = `You are IntelliHub, an internal knowledge assistant. Answer the following question using only verified internal knowledge. Be concise and cite sources. Question: "${question}"`;
+      const sloan = await askSloan(prompt);
+
+      if (sloan.ok) {
+        return sendJson(res, 200, { source: "sloan", answer: sloan.reasoning });
+      }
+
+      // Fallback: return indicator for client-side processing
+      return sendJson(res, 200, { source: "local", answer: null });
     });
     return;
   }
-  if (req.method === "GET" && req.url === "/api/sloan-status") {
+
+  // API: Status
+  if (req.method === "GET" && req.url === "/api/status") {
     return sendJson(res, 200, {
-      configured: Boolean(CFG.token),
-      baseUrl: CFG.baseUrl,
-      path: CFG.shortcutPath,
-      tokenHeader: CFG.tokenHeader,
+      status: "ok",
+      sloan: CFG.token ? "configured" : "not_configured",
+      version: "2.0.0",
     });
   }
+
+  // Static files
   if (req.method === "GET") return serveStatic(req, res);
-  res.writeHead(405); res.end("method not allowed");
+
+  res.writeHead(405);
+  res.end("method not allowed");
 });
 
 server.listen(CFG.port, "0.0.0.0", () => {
   const ifaces = require("os").networkInterfaces();
-  const lanIP = Object.values(ifaces).flat().find(i => i.family === "IPv4" && !i.internal)?.address || "unknown";
-  console.log(`\n  IntelliHub prototype running:`);
+  const lanIP = Object.values(ifaces).flat().find(i => i.family === "IPv4" && !i.internal)?.address || "localhost";
+  console.log(`\n  IntelliHub Knowledge Portal running:`);
   console.log(`    Local:   http://localhost:${CFG.port}`);
   console.log(`    Network: http://${lanIP}:${CFG.port}`);
-  console.log(`  Sloan reasoning: ${CFG.token ? "ENABLED" : "DISABLED (set SLOAN_TOKEN in .env)"} -> ${CFG.baseUrl}${CFG.shortcutPath}`);
-  console.log(`  (All CRM/Teams/knowledge content is synthetic.)\n`);
+  console.log(`  Sloan AI:  ${CFG.token ? "ENABLED" : "DISABLED (client-side KB matching active)"}`);
+  console.log(`\n`);
 });

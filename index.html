@@ -1,106 +1,172 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>IntelliHub — Powered by Amazon Kiro</title>
+  <title>IntelliHub — Your Team Knowledge Companion</title>
   <link rel="stylesheet" href="css/styles.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
-  <div class="app" id="app">
-    <!-- Top bar -->
-    <header class="topbar">
-      <div class="topbar-left">
-        <div class="app-brand">
-          <span class="app-glyph">IH</span>
-          <span class="app-name" data-i18n="app.title">IntelliHub</span>
-        </div>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-brand">
+        <span class="brand-mark">IH</span>
+        <span class="brand-name">IntelliHub</span>
       </div>
-      <div class="topbar-center">
-        <div class="search">
-          <svg class="ic" viewBox="0 0 24 24"><path d="M10 4a6 6 0 104.47 10.03l4.25 4.24 1.41-1.41-4.24-4.25A6 6 0 0010 4zm0 2a4 4 0 110 8 4 4 0 010-8z"/></svg>
-          <input type="text" id="searchInput" data-i18n-ph="search.placeholder" placeholder="Rechercher" />
-        </div>
-      </div>
-      <div class="topbar-right">
-        <div class="lang-select">
-          <svg class="ic" viewBox="0 0 24 24"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm6.93 6h-2.95a15.6 15.6 0 00-1.38-3.56A8.03 8.03 0 0118.92 8zM12 4c.83 1.2 1.48 2.54 1.91 4h-3.82c.43-1.46 1.08-2.8 1.91-4zM4.26 14a7.96 7.96 0 010-4h3.38a16.6 16.6 0 000 4H4.26zm.82 2h2.95c.34 1.27.8 2.46 1.38 3.56A8.03 8.03 0 015.08 16zm2.95-8H5.08a8.03 8.03 0 014.33-3.56A15.6 15.6 0 008.03 8zM12 20c-.83-1.2-1.48-2.54-1.91-4h3.82A13.4 13.4 0 0112 20zm2.34-6H9.66a14.7 14.7 0 010-4h4.68a14.7 14.7 0 010 4zm.25 5.56c.58-1.1 1.04-2.29 1.38-3.56h2.95a8.03 8.03 0 01-4.33 3.56zM16.36 14a16.6 16.6 0 000-4h3.38a7.96 7.96 0 010 4h-3.38z"/></svg>
-          <select id="langSelect" aria-label="Language"></select>
-        </div>
-        <a href="/executive-summary.html" download="IntelliHub-Executive-Summary.html" class="summary-link" id="summaryLink" data-i18n="summary.download" title="Download Executive Summary">Télécharger le résumé</a>
-        <span class="badge-mockup" id="poweredBadge" data-i18n="app.badge">Prototype concept local · Données synthétiques uniquement · Propulsé par Amazon Kiro</span>
+      <nav class="header-nav">
+        <a href="#ask" class="nav-link active" data-section="ask">Ask AI</a>
+        <a href="#convert" class="nav-link" data-section="convert">File Converter</a>
+        <a href="#knowledge" class="nav-link" data-section="knowledge">Knowledge Base</a>
+      </nav>
+      <div class="header-meta">
+        <span class="status-dot"></span>
+        <span class="status-text">Connected to internal sources</span>
       </div>
     </header>
 
-    <!-- Body: rail | sidebar | conversation | intelligence pane -->
-    <div class="body">
-      <!-- Left navigation rail -->
-      <nav class="rail" id="rail" aria-label="Primary"></nav>
-
-      <!-- Teams + channel tree -->
-      <aside class="sidebar" id="sidebar">
-        <div class="sidebar-head" data-i18n="teams.header">Équipes</div>
-        <div class="team-tree" id="teamTree"></div>
-      </aside>
-
-      <!-- Center conversation -->
-      <main class="channel" id="channel">
-        <div class="channel-head">
-          <div class="channel-title">
-            <span class="channel-hash">#</span>
-            <h1 id="channelName">CRM Resolution — Global Operations</h1>
+    <!-- Main content -->
+    <main class="main">
+      <!-- AI Q&A Section -->
+      <section class="section section-ask active" id="section-ask">
+        <div class="section-inner">
+          <div class="hero-compact">
+            <h1>What can I help you find?</h1>
+            <p class="hero-sub">I reference our internal wiki, KB articles, playbooks, and resolved cases to give you accurate, sourced answers.</p>
           </div>
-          <div class="channel-tabs">
-            <button class="ch-tab active" data-i18n="channel.posts">Publications</button>
-            <button class="ch-tab" data-i18n="channel.files">Fichiers</button>
-            <button class="ch-tab" data-i18n="channel.about">IntelliHub</button>
-            <button class="pane-toggle" id="paneToggleTop" title="">⟨⟩</button>
+
+          <div class="ask-container">
+            <div class="ask-input-wrap">
+              <textarea id="askInput" class="ask-input" placeholder="Ask a question about our processes, configurations, best practices, or past resolutions..." rows="3"></textarea>
+              <button class="ask-btn" id="askBtn">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2Z"/></svg>
+                Ask
+              </button>
+            </div>
+            <div class="ask-hints">
+              <span class="hint-label">Try:</span>
+              <button class="hint-chip" data-q="How do I troubleshoot partial-day travel reimbursement results?">Travel reimbursement config</button>
+              <button class="hint-chip" data-q="What is the rule evaluation sequence for configuration changes?">Rule evaluation sequence</button>
+              <button class="hint-chip" data-q="What are the escalation criteria for unresolved configuration issues?">Escalation criteria</button>
+            </div>
+          </div>
+
+          <div class="conversation" id="conversation">
+            <div class="welcome-state" id="welcomeState">
+              <div class="welcome-icon">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+              </div>
+              <p class="welcome-text">Your answers are sourced from approved policies, validated playbooks, historical CRM cases, and team knowledge. Every response includes citations so you can verify the source.</p>
+              <div class="source-badges">
+                <span class="source-badge badge-policy">Approved Policies</span>
+                <span class="source-badge badge-playbook">Validated Playbooks</span>
+                <span class="source-badge badge-precedent">CRM Precedent</span>
+                <span class="source-badge badge-wiki">Internal Wiki</span>
+              </div>
+            </div>
           </div>
         </div>
+      </section>
 
-        <div class="messages" id="messages"></div>
+      <!-- File Converter Section -->
+      <section class="section section-convert" id="section-convert">
+        <div class="section-inner">
+          <div class="hero-compact">
+            <h1>Excel File Converter</h1>
+            <p class="hero-sub">Upload an Excel file (.xlsx, .xls) and convert it to CSV or TXT format. The AI will review your file structure and provide a clean conversion.</p>
+          </div>
 
-        <div class="composer">
-          <button class="demo-btn" id="demoBtn" data-i18n="compose.demoButton">Publier la question de démo</button>
-          <div class="composer-input">
-            <input type="text" id="composeInput" data-i18n-ph="compose.placeholder" placeholder="Écrivez un message au canal" />
-            <button class="send-btn" id="sendBtn" data-i18n="compose.send">Envoyer</button>
+          <div class="converter-container">
+            <div class="upload-zone" id="uploadZone">
+              <div class="upload-icon">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              </div>
+              <p class="upload-text">Drag and drop your Excel file here</p>
+              <p class="upload-sub">or click to browse</p>
+              <input type="file" id="fileInput" accept=".xlsx,.xls" hidden />
+            </div>
+
+            <div class="file-preview" id="filePreview" hidden>
+              <div class="file-info">
+                <div class="file-icon">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                </div>
+                <div class="file-details">
+                  <span class="file-name" id="fileName"></span>
+                  <span class="file-meta" id="fileMeta"></span>
+                </div>
+                <button class="file-remove" id="fileRemove" title="Remove file">&times;</button>
+              </div>
+
+              <div class="sheet-selector" id="sheetSelector" hidden>
+                <label class="field-label">Select sheet:</label>
+                <select id="sheetSelect" class="field-select"></select>
+              </div>
+
+              <div class="preview-table-wrap" id="previewTableWrap" hidden>
+                <p class="preview-label">Preview (first 5 rows):</p>
+                <div class="preview-table-scroll">
+                  <table class="preview-table" id="previewTable"></table>
+                </div>
+              </div>
+
+              <div class="convert-actions">
+                <label class="field-label">Convert to:</label>
+                <div class="format-options">
+                  <label class="format-option">
+                    <input type="radio" name="format" value="csv" checked />
+                    <span class="format-label">CSV</span>
+                    <span class="format-desc">Comma-separated values</span>
+                  </label>
+                  <label class="format-option">
+                    <input type="radio" name="format" value="txt" />
+                    <span class="format-label">TXT</span>
+                    <span class="format-desc">Tab-delimited text</span>
+                  </label>
+                </div>
+                <button class="convert-btn" id="convertBtn">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  Convert &amp; Download
+                </button>
+              </div>
+
+              <div class="ai-review" id="aiReview" hidden>
+                <div class="ai-review-header">
+                  <span class="ai-badge">AI Review</span>
+                  <span class="ai-review-title">File Analysis</span>
+                </div>
+                <div class="ai-review-body" id="aiReviewBody"></div>
+              </div>
+            </div>
           </div>
         </div>
-      </main>
+      </section>
 
-      <!-- Right intelligence pane -->
-      <aside class="pane" id="pane">
-        <div class="pane-head">
-          <span class="pane-title" data-i18n="pane.title">Intelligence Amazon Kiro</span>
-          <button class="pane-collapse" id="paneCollapse" data-i18n-title="pane.collapse" title="Réduire">×</button>
+      <!-- Knowledge Base Section -->
+      <section class="section section-knowledge" id="section-knowledge">
+        <div class="section-inner">
+          <div class="hero-compact">
+            <h1>Knowledge Base</h1>
+            <p class="hero-sub">Browse approved policies, validated practices, and team playbooks. All entries are governed and sourced.</p>
+          </div>
+
+          <div class="knowledge-grid" id="knowledgeGrid">
+            <!-- Populated by JS -->
+          </div>
         </div>
-        <div class="pane-tabs" id="paneTabs"></div>
-        <div class="pane-body" id="paneBody"></div>
-        <div class="future-note" id="futureNote"></div>
-      </aside>
+      </section>
+    </main>
 
-      <!-- Collapsed pane handle -->
-      <button class="pane-reopen" id="paneReopen" data-i18n-title="pane.expand" title="Ouvrir" hidden>⟨ AI</button>
-    </div>
+    <!-- Footer -->
+    <footer class="footer">
+      <span>IntelliHub &mdash; Internal Knowledge Companion</span>
+      <span class="footer-sep">&middot;</span>
+      <span>All responses sourced from confirmed internal resources</span>
+    </footer>
   </div>
 
-  <div class="toast-wrap" id="toastWrap"></div>
-  <div class="modal-backdrop" id="modalBackdrop">
-    <div class="modal" id="modal"></div>
-  </div>
-
-  <script>
-    window.addEventListener('error', function(e) {
-      var m = document.getElementById('messages');
-      if (m) m.innerHTML =
-        '<div style="padding:20px;color:red;font-family:monospace;white-space:pre-wrap">' +
-        'JS Error: ' + (e.message || 'unknown') + '\nFile: ' + (e.filename || '') + ':' + (e.lineno || '') +
-        '</div>';
-    });
-  </script>
   <script src="js/data.js"></script>
-  <script src="js/i18n.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
