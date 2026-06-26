@@ -466,12 +466,59 @@
     });
   }
 
+  /* ---- Team Conversation Panel ---- */
+  function initTeamPanel() {
+    const TC = window.TEAM_CONVERSATION;
+    if (!TC) return;
+
+    const container = $('#panelMessages');
+    if (!container) return;
+
+    TC.messages.forEach(msg => {
+      const person = TC.people[msg.person];
+      const el = document.createElement('div');
+
+      if (msg.isRecommendation) {
+        el.className = 'panel-msg panel-msg-ai';
+        el.innerHTML = `
+          <div class="panel-msg-head">
+            <span class="panel-av" style="background:${person.color}">${esc(person.initials)}</span>
+            <span class="panel-name">${esc(person.name)}</span>
+            <span class="panel-badge">AI</span>
+            <span class="panel-time">${esc(msg.time)}</span>
+          </div>
+          <div class="panel-rec">
+            <div class="panel-rec-title">${esc(msg.title)}</div>
+            <div class="panel-rec-body">${esc(msg.body)}</div>
+            <div class="panel-rec-step"><strong>Next step:</strong> ${esc(msg.nextStep)}</div>
+            <div class="panel-rec-meta">
+              <span class="panel-conf">Confidence: ${Math.round(msg.confidence * 100)}%</span>
+              <span class="panel-cite">${msg.citations.length} sources cited</span>
+            </div>
+          </div>`;
+      } else {
+        el.className = 'panel-msg';
+        el.innerHTML = `
+          <div class="panel-msg-head">
+            <span class="panel-av" style="background:${person.color}">${esc(person.initials)}</span>
+            <span class="panel-name">${esc(person.name)}</span>
+            <span class="panel-role">${esc(person.role)}</span>
+            <span class="panel-time">${esc(msg.time)}</span>
+          </div>
+          <div class="panel-msg-body">${esc(msg.body)}</div>`;
+      }
+
+      container.appendChild(el);
+    });
+  }
+
   /* ---- Initialize ---- */
   function init() {
     initNav();
     initAsk();
     initConverter();
     initKnowledgeBase();
+    initTeamPanel();
   }
 
   if (document.readyState === 'loading') {

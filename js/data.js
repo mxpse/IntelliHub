@@ -190,5 +190,55 @@ const KNOWLEDGE_BASE = {
   ]
 };
 
+/* ---- Team Conversation Thread ---- */
+const TEAM_CONVERSATION = {
+  channel: "CRM Resolution — Global Operations",
+  people: {
+    marco: { name: "Marco Oliveira", role: "Senior Configuration Consultant", region: "Brazil", initials: "MO", color: "#6264a7" },
+    lena: { name: "Lena Dvorakova", role: "Platform Configuration Engineer", region: "Czech Republic", initials: "LD", color: "#2e7d5b" },
+    rajesh: { name: "Rajesh Kapoor", role: "Configuration Team Lead", region: "India", initials: "RK", color: "#c4571f" },
+    jason: { name: "Jason Torres", role: "Configuration Specialist", region: "US", initials: "JT", color: "#3572a5" },
+    ai: { name: "IntelliHub AI", role: "Knowledge Companion", region: "", initials: "AI", color: "#0a6ed1", bot: true },
+  },
+  messages: [
+    {
+      person: "marco",
+      time: "09:12",
+      body: "Hey team — I'm seeing an issue with international travel reimbursement configuration. A multi-day travel scenario is producing partial-day results when the full-day rate should apply. The itinerary clearly spans complete days but the system is calculating as if some days are partial."
+    },
+    {
+      person: "lena",
+      time: "09:15",
+      body: "I've seen something similar before. The first thing I'd check is the travel-period classification — how the system determines whether a day counts as full or partial. There are usually threshold rules for departure and arrival times that affect how each day is categorized."
+    },
+    {
+      person: "rajesh",
+      time: "09:18",
+      body: "Good point, Lena. Also check the configuration hierarchy — rule precedence matters here. If there's a general interval definition that conflicts with the specific travel-period rule, the wrong one might be winning. And look at supporting adjustment logic — deduction or proration rules that could override the base calculation."
+    },
+    {
+      person: "jason",
+      time: "09:21",
+      body: "I had a similar case last month with a US-based scenario. The issue was that policy conditions were evaluated before the interval definitions, so the system was applying a partial-day cap before it even determined the correct travel period. Once we sorted out the evaluation sequence, the full-day rate applied correctly."
+    },
+    {
+      person: "ai",
+      time: "09:22",
+      isRecommendation: true,
+      title: "Review Configuration Precedence Before Changing Values",
+      body: "I found relevant approved knowledge, 14 comparable historical CRM cases, and validated team practices that apply to this scenario.",
+      nextStep: "Review configuration precedence and calculation sequence before modifying reimbursement values.",
+      citations: ["KB-204", "PLAY-015", "CRM-101", "CRM-107", "CRM-114"],
+      confidence: 0.91,
+    },
+    {
+      person: "marco",
+      time: "09:24",
+      body: "Has anyone encountered multi-day travel configurations producing partial-day results unexpectedly? Is this a known pattern?"
+    },
+  ]
+};
+
 /* Export for use in app */
 window.KNOWLEDGE_BASE = KNOWLEDGE_BASE;
+window.TEAM_CONVERSATION = TEAM_CONVERSATION;
