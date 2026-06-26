@@ -16,9 +16,10 @@
         <span class="brand-name">IntelliHub</span>
       </div>
       <nav class="header-nav">
-        <a href="#ask" class="nav-link active" data-section="ask">Ask AI SME</a>
-        <a href="#convert" class="nav-link" data-section="convert">File Converter</a>
-        <a href="#knowledge" class="nav-link" data-section="knowledge">Knowledge Base</a>
+        <a href="#chat" class="nav-link active" data-section="chat">Team Chat</a>
+        <a href="#ask" class="nav-link" data-section="ask">&#x1F916; Ask AI SME</a>
+        <a href="#convert" class="nav-link" data-section="convert">&#x2699;&#xFE0F; File Converter</a>
+        <a href="#knowledge" class="nav-link" data-section="knowledge">&#x1F4DA; Knowledge Vault</a>
         <a href="#statutory" class="nav-link" data-section="statutory">Statutory Wiki</a>
       </nav>
       <div class="header-meta">
@@ -31,8 +32,21 @@
     <div class="body-layout">
       <!-- Main content -->
       <main class="main">
+        <!-- Team Chat Section (default view) -->
+        <section class="section active" id="section-chat">
+          <div class="section-inner">
+            <div class="hero-compact">
+              <h1>Team Chat</h1>
+              <p class="hero-sub">Real-time team discussions on configuration issues, resolutions, and best practices. Confirmed outcomes are archived to the Knowledge Vault.</p>
+            </div>
+            <div class="team-chat-feed" id="teamChatFeed">
+              <!-- Populated by JS — mirrors the right panel but in full width -->
+            </div>
+          </div>
+        </section>
+
         <!-- AI Q&A Section -->
-        <section class="section section-ask active" id="section-ask">
+        <section class="section section-ask" id="section-ask">
           <div class="section-inner">
             <div class="hero-compact">
               <h1>What can I help you find?</h1>
@@ -184,16 +198,33 @@
           </div>
         </section>
 
-        <!-- Knowledge Base Section -->
+        <!-- Knowledge Vault Section -->
         <section class="section section-knowledge" id="section-knowledge">
           <div class="section-inner">
             <div class="hero-compact">
-              <h1>Knowledge Base</h1>
-              <p class="hero-sub">Browse approved policies, validated practices, and team playbooks. All entries are governed and sourced.</p>
+              <h1>&#x1F4DA; Knowledge Vault</h1>
+              <p class="hero-sub">Governed repository of team intelligence. Browse approved policies, validated practices, and pending submissions.</p>
             </div>
 
-            <div class="knowledge-grid" id="knowledgeGrid">
-              <!-- Populated by JS -->
+            <div class="vault-section" id="vaultPending">
+              <div class="vault-section-header">
+                <h2>&#x23F3; Pending Validation</h2>
+                <span class="vault-count" id="pendingCount">0</span>
+              </div>
+              <div class="knowledge-grid" id="pendingGrid">
+                <!-- Populated by JS -->
+              </div>
+              <p class="vault-empty" id="pendingEmpty" hidden>No items pending validation.</p>
+            </div>
+
+            <div class="vault-section" id="vaultValidated">
+              <div class="vault-section-header">
+                <h2>&#x2705; Validated Practices</h2>
+                <span class="vault-count" id="validatedCount">0</span>
+              </div>
+              <div class="knowledge-grid" id="validatedGrid">
+                <!-- Populated by JS -->
+              </div>
             </div>
           </div>
         </section>

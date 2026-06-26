@@ -6,7 +6,7 @@
 
   /* ---- State ---- */
   const state = {
-    currentSection: 'ask',
+    currentSection: 'chat',
     workbook: null,
     fileName: '',
     selectedSheet: 0,
@@ -434,10 +434,16 @@
     $('#fileInput').value = '';
   }
 
-  /* ---- Knowledge Base ---- */
+  /* ---- Knowledge Vault ---- */
   function initKnowledgeBase() {
-    const grid = $('#knowledgeGrid');
+    const pendingGrid = $('#pendingGrid');
+    const validatedGrid = $('#validatedGrid');
+    if (!pendingGrid || !validatedGrid) return;
+
     const allItems = [...KB.policies, ...KB.playbooks, ...KB.precedents, ...KB.wiki];
+
+    let pendingCount = 0;
+    let validatedCount = 0;
 
     allItems.forEach(item => {
       const card = document.createElement('div');
@@ -451,6 +457,7 @@
       }[item.type];
 
       const statusText = item.status || item.outcome || '';
+      const isPending = statusText.toLowerCase().includes('pending') || statusText.toLowerCase().includes('under review');
 
       card.innerHTML = `
         <div class="kb-card-header">
@@ -463,7 +470,99 @@
           ${item.id} ${item.region ? '· ' + item.region : ''} ${item.lastUpdated ? '· Updated ' + item.lastUpdated : ''}
         </div>`;
 
-      grid.appendChild(card);
+      if (isPending) {
+        pendingGrid.appendChild(card);
+        pendingCount++;
+      } else {
+        validatedGrid.appendChild(card);
+        validatedCount++;
+      }
+    });
+
+    // Update counts
+    const pendingCountEl = $('#pendingCount');
+    const validatedCountEl = $('#validatedCount');
+    if (pendingCountEl) pendingCountEl.textContent = pendingCount;
+    if (validatedCountEl) validatedCountEl.textContent = validatedCount;
+
+    // Show empty state if no pending
+    const pendingEmpty = $('#pendingEmpty');
+    if (pendingCount === 0 && pendingEmpty) pendingEmpty.hidden = false;
+  }
+
+  /* ---- Team Chat (main view) ---- */
+  function initTeamChat() {
+    const feed = $('#teamChatFeed');
+    if (!feed) return;
+    const TC = window.TEAM_CONVERSATION;
+    if (!TC) return;
+
+    TC.messages.forEach((msg, idx) => {
+      const person = TC.people[msg.person];
+      const el = document.createElement('div');
+
+      if (msg.isRecommendation) {
+        el.className = 'chat-message ai';
+        el.innerHTML = `
+          <div class="chat-sender">${esc(person.name)} · AI Companion</div>
+          <div class="chat-body">
+            <p><strong>${esc(msg.title)}</strong></p>
+            <p>${esc(msg.body)}</p>
+            <p><strong>Recommended next step:</strong> ${esc(msg.nextStep)}</p>
+          </div>
+          <div class="chat-citations">
+            <div class="citation-label">Sources referenced · Confidence: ${Math.round(msg.confidence * 100)}%</div>
+            <div class="citation-list">
+              ${msg.citations.map(c => `<span class="citation-tag playbook">${esc(c)}</span>`).join('')}
+            </div>
+          </div>
+          <div class="panel-msg-actions">
+            <button class="approve-btn" data-chat-idx="${idx}" data-type="best-practice">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+              Approve as Best Practice
+            </button>
+          </div>`;
+      } else {
+        el.className = 'chat-message user';
+        el.style.marginLeft = '0';
+        el.innerHTML = `
+          <div class="chat-sender">${esc(person.name)} · ${esc(person.role)} · ${esc(person.region)}</div>
+          <div class="chat-body"><p>${esc(msg.body)}</p></div>
+          <div class="panel-msg-actions">
+            <button class="approve-btn" data-chat-idx="${idx}" data-type="confirmed">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+              Confirm as Approved Practice
+            </button>
+          </div>`;
+      }
+
+      feed.appendChild(el);
+    });
+
+    // Wire approve buttons
+    feed.querySelectorAll('.approve-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const idx = parseInt(btn.dataset.chatIdx);
+        const msg = TC.messages[idx];
+        const person = TC.people[msg.person];
+
+        const entry = {
+          id: 'ARCH-' + String(state.archivedPractices.length + 1).padStart(3, '0'),
+          type: 'playbook',
+          title: msg.isRecommendation ? msg.title : `Confirmed practice from ${person.name}`,
+          content: msg.isRecommendation ? `${msg.body} Next step: ${msg.nextStep}` : msg.body,
+          tags: ['team-confirmed', 'conversation-sourced'],
+          status: 'Validated — Team Confirmed',
+          lastUpdated: new Date().toISOString().split('T')[0],
+        };
+
+        state.archivedPractices.push(entry);
+        KB.playbooks.push(entry);
+
+        btn.disabled = true;
+        btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Archived to Knowledge Vault`;
+        btn.classList.add('approved');
+      });
     });
   }
 
@@ -625,6 +724,7 @@
   /* ---- Initialize ---- */
   function init() {
     initNav();
+    initTeamChat();
     initAsk();
     initCapture();
     initConverter();
