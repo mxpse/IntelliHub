@@ -62,44 +62,6 @@
               <p class="hero-sub">I reference our internal wiki, KB articles, playbooks, and resolved cases to give you accurate, sourced answers.</p>
             </div>
 
-            <!-- Archive Confirmed Practice -->
-            <div class="capture-section">
-              <div class="capture-header">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-                <h3>Archive Confirmed Practice</h3>
-              </div>
-              <p class="capture-desc">When your team conversation reaches a confirmed best practice or workaround, summarize and archive it here. The AI SME will document it and make it searchable for future questions.</p>
-              <div class="capture-form" id="captureForm">
-                <div class="capture-field">
-                  <label class="field-label">Topic / Title</label>
-                  <input type="text" id="captureTitle" class="capture-input" placeholder="e.g. Multi-day travel partial-day fix" />
-                </div>
-                <div class="capture-field">
-                  <label class="field-label">Confirmed Resolution Summary</label>
-                  <textarea id="captureSummary" class="capture-textarea" rows="3" placeholder="Summarize the confirmed best practice or workaround that was validated by the team..."></textarea>
-                </div>
-                <div class="capture-field">
-                  <label class="field-label">Keywords (comma-separated)</label>
-                  <input type="text" id="captureKeywords" class="capture-input" placeholder="e.g. travel, reimbursement, partial-day, rule precedence" />
-                </div>
-                <div class="capture-field">
-                  <label class="field-label">Classification</label>
-                  <div class="capture-radio-group">
-                    <label class="capture-radio"><input type="radio" name="captureType" value="best-practice" checked /> Best Practice</label>
-                    <label class="capture-radio"><input type="radio" name="captureType" value="workaround" /> Workaround</label>
-                  </div>
-                </div>
-                <button class="capture-btn" id="captureBtn">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-                  Archive to Knowledge Base
-                </button>
-              </div>
-              <div class="capture-success" id="captureSuccess" hidden>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                <span>Archived successfully. This practice is now searchable via Ask AI SME.</span>
-              </div>
-            </div>
-
             <div class="ask-container">
               <div class="ask-input-wrap">
                 <textarea id="askInput" class="ask-input" placeholder="Ask a question about our processes, configurations, best practices, or past resolutions..." rows="3"></textarea>
@@ -233,6 +195,44 @@
               </div>
               <div class="knowledge-grid" id="validatedGrid">
                 <!-- Populated by JS -->
+              </div>
+            </div>
+
+            <!-- Knowledge Core (archive confirmed practices) -->
+            <div class="capture-section">
+              <div class="capture-header">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                <h3>Knowledge Core</h3>
+              </div>
+              <p class="capture-desc">When your team conversation reaches a confirmed best practice or workaround, summarize and archive it here. The AI SME will document it and make it searchable for future questions.</p>
+              <div class="capture-form" id="captureForm">
+                <div class="capture-field">
+                  <label class="field-label">Topic / Title</label>
+                  <input type="text" id="captureTitle" class="capture-input" placeholder="e.g. Multi-day travel partial-day fix" />
+                </div>
+                <div class="capture-field">
+                  <label class="field-label">Confirmed Resolution Summary</label>
+                  <textarea id="captureSummary" class="capture-textarea" rows="3" placeholder="Summarize the confirmed best practice or workaround that was validated by the team..."></textarea>
+                </div>
+                <div class="capture-field">
+                  <label class="field-label">Keywords (comma-separated)</label>
+                  <input type="text" id="captureKeywords" class="capture-input" placeholder="e.g. travel, reimbursement, partial-day, rule precedence" />
+                </div>
+                <div class="capture-field">
+                  <label class="field-label">Classification</label>
+                  <div class="capture-radio-group">
+                    <label class="capture-radio"><input type="radio" name="captureType" value="best-practice" checked /> Best Practice</label>
+                    <label class="capture-radio"><input type="radio" name="captureType" value="workaround" /> Workaround</label>
+                  </div>
+                </div>
+                <button class="capture-btn" id="captureBtn">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                  Archive to Knowledge Vault
+                </button>
+              </div>
+              <div class="capture-success" id="captureSuccess" hidden>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                <span>Archived successfully. This practice is now searchable via Ask AI SME.</span>
               </div>
             </div>
           </div>
